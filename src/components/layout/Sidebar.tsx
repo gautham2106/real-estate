@@ -25,28 +25,33 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
-const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, module: 1 },
-  { href: '/properties', label: 'Properties', icon: MapPin, module: 2 },
-  { href: '/seller-leads', label: 'Seller Leads', icon: UserMinus, module: 3 },
-  { href: '/buyer-leads', label: 'Buyer Leads', icon: UserPlus, module: 4 },
-  { href: '/site-visits', label: 'Site Visits', icon: Calendar, module: 5 },
-  { href: '/deals', label: 'Deals', icon: Handshake, module: 6 },
-  { href: '/brokers', label: 'Brokers', icon: Users, module: 7 },
-  { href: '/broker-portal', label: 'Broker Portal', icon: UserCircle, module: 8 },
-  { href: '/documents', label: 'Documents', icon: FolderOpen, module: 9 },
-  { href: '/kanban', label: 'Kanban Board', icon: Columns3, module: 10 },
-  { href: '/books', label: 'Books / Files', icon: BookOpen, module: 11 },
-  { href: '/commission', label: 'Commission', icon: Calculator, module: 12 },
-  { href: '/map', label: 'Public Map', icon: Globe, module: 13 },
-  { href: '/alerts', label: 'Alerts', icon: Bell, module: 14 },
-  { href: '/broker-network', label: 'Network Tree', icon: Network, module: 15 },
-  { href: '/reports', label: 'Reports', icon: BarChart3, module: 16 },
+const ALL_NAV = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'broker'] },
+  { href: '/properties', label: 'Properties', icon: MapPin, roles: ['admin', 'broker'] },
+  { href: '/seller-leads', label: 'Seller Leads', icon: UserMinus, roles: ['admin', 'broker'] },
+  { href: '/buyer-leads', label: 'Buyer Leads', icon: UserPlus, roles: ['admin', 'broker'] },
+  { href: '/site-visits', label: 'Site Visits', icon: Calendar, roles: ['admin', 'broker'] },
+  { href: '/deals', label: 'Deals', icon: Handshake, roles: ['admin', 'broker'] },
+  { href: '/brokers', label: 'Brokers', icon: Users, roles: ['admin'] },
+  { href: '/broker-portal', label: 'Broker Portal', icon: UserCircle, roles: ['admin', 'broker'] },
+  { href: '/documents', label: 'Documents', icon: FolderOpen, roles: ['admin'] },
+  { href: '/kanban', label: 'Kanban Board', icon: Columns3, roles: ['admin', 'broker'] },
+  { href: '/books', label: 'Books / Files', icon: BookOpen, roles: ['admin'] },
+  { href: '/commission', label: 'Commission', icon: Calculator, roles: ['admin', 'broker'] },
+  { href: '/map', label: 'Public Map', icon: Globe, roles: ['admin', 'broker'] },
+  { href: '/alerts', label: 'Alerts', icon: Bell, roles: ['admin', 'broker'] },
+  { href: '/broker-network', label: 'Network Tree', icon: Network, roles: ['admin'] },
+  { href: '/reports', label: 'Reports', icon: BarChart3, roles: ['admin'] },
 ]
 
-export default function Sidebar() {
+interface SidebarProps {
+  role?: 'admin' | 'broker' | null
+}
+
+export default function Sidebar({ role = 'admin' }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const navItems = ALL_NAV.filter(item => item.roles.includes(role ?? 'admin'))
 
   return (
     <aside

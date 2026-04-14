@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Calculator } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -101,9 +101,24 @@ export default function NewDealPage() {
   const yourNet =
     totalCommission - buyerBrokerPayout - sellerBrokerPayout - referralPayout - tier1Payout - tier2Payout
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitting, setSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    alert('Deal created successfully! (client-side demo)')
+    setSubmitting(true)
+    setServerError(null)
+    const formData = new FormData(e.currentTarget)
+    // Append computed commission fields
+    formData.set('buyer_commission_pct', buyerCommPct)
+    formData.set('seller_commission_pct', sellerCommPct)
+    formData.set('has_referral', referralEnabled ? 'true' : '')
+    const { createDealAction } = await import('@/app/actions/deals')
+    const result = await createDealAction(formData)
+    if (result?.error) {
+      setServerError(result.error)
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -128,6 +143,7 @@ export default function NewDealPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField label="Linked Property" required>
               <select
+                name="property_id"
                 value={propertyId}
                 onChange={(e) => setPropertyId(e.target.value)}
                 className={selectCls}
@@ -143,6 +159,7 @@ export default function NewDealPage() {
 
             <FormField label="Linked Buyer Lead">
               <select
+                name="buyer_lead_id"
                 value={buyerLeadId}
                 onChange={(e) => setBuyerLeadId(e.target.value)}
                 className={selectCls}
@@ -158,6 +175,7 @@ export default function NewDealPage() {
 
             <FormField label="Linked Seller Lead">
               <select
+                name="seller_lead_id"
                 value={sellerLeadId}
                 onChange={(e) => setSellerLeadId(e.target.value)}
                 className={selectCls}
@@ -243,6 +261,7 @@ export default function NewDealPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <FormField label="Deal Value (₹)" required>
               <input
+                name="deal_value"
                 type="number"
                 value={dealValue}
                 onChange={(e) => setDealValue(e.target.value)}
@@ -320,10 +339,10 @@ export default function NewDealPage() {
           <SectionTitle>Payments</SectionTitle>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField label="Token Amount (₹)">
-              <input type="number" value={tokenAmount} onChange={(e) => setTokenAmount(e.target.value)} className={inputCls} />
+              <input name="token_amount" type="number" value={tokenAmount} onChange={(e) => setTokenAmount(e.target.value)} className={inputCls} />
             </FormField>
             <FormField label="Token Date">
-              <input type="date" value={tokenDate} onChange={(e) => setTokenDate(e.target.value)} className={inputCls} />
+              <input name="token_date" type="date" value={tokenDate} onChange={(e) => setTokenDate(e.target.value)} className={inputCls} />
             </FormField>
             <div /> {/* spacer */}
             <FormField label="Advance Amount (₹)">
@@ -399,6 +418,7 @@ export default function NewDealPage() {
             </FormField>
             <FormField label="Notes">
               <textarea
+                name="notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
@@ -409,13 +429,20 @@ export default function NewDealPage() {
           </div>
         </div>
 
+        {serverError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            {serverError}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center gap-3 pb-8">
           <button
             type="submit"
-            className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={submitting}
+            className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60"
           >
-            Create Deal
+            {submitting ? 'Creating...' : 'Create Deal'}
           </button>
           <Link
             href="/deals"

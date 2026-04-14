@@ -63,31 +63,23 @@ const selectCls = inputCls + ' appearance-none'
 
 export default function NewSellerLeadPage() {
   const [form, setForm] = useState<FormState>(initialForm)
-  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const set = (field: keyof FormState, value: string) =>
     setForm((f) => ({ ...f, [field]: value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setSubmitted(true)
-  }
-
-  if (submitted) {
-    return (
-      <div className="max-w-screen-xl space-y-6">
-        <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-          <p className="text-green-700 font-semibold text-lg">Seller lead saved successfully!</p>
-          <p className="text-green-600 text-sm mt-1">The new seller lead has been added to the system.</p>
-          <Link
-            href="/seller-leads"
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            Back to Seller Leads
-          </Link>
-        </div>
-      </div>
-    )
+    setSubmitting(true)
+    setServerError(null)
+    const formData = new FormData(e.currentTarget)
+    const { createSellerLeadAction } = await import('@/app/actions/leads')
+    const result = await createSellerLeadAction(formData)
+    if (result?.error) {
+      setServerError(result.error)
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -114,6 +106,7 @@ export default function NewSellerLeadPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Owner Name" required>
               <input
+                name="owner_name"
                 className={inputCls}
                 value={form.owner_name}
                 onChange={(e) => set('owner_name', e.target.value)}
@@ -123,6 +116,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="Phone" required>
               <input
+                name="phone"
                 className={inputCls}
                 type="tel"
                 value={form.phone}
@@ -133,6 +127,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="WhatsApp Number">
               <input
+                name="whatsapp"
                 className={inputCls}
                 type="tel"
                 value={form.whatsapp}
@@ -150,6 +145,7 @@ export default function NewSellerLeadPage() {
             <div className="sm:col-span-2 lg:col-span-2">
               <Field label="Property Location" required>
                 <input
+                  name="property_location"
                   className={inputCls}
                   value={form.property_location}
                   onChange={(e) => set('property_location', e.target.value)}
@@ -160,6 +156,7 @@ export default function NewSellerLeadPage() {
             </div>
             <Field label="Approximate Area">
               <input
+                name="approximate_area"
                 className={inputCls}
                 value={form.approximate_area}
                 onChange={(e) => set('approximate_area', e.target.value)}
@@ -168,6 +165,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="Asking Price (₹)">
               <input
+                name="asking_price"
                 className={inputCls}
                 type="number"
                 value={form.asking_price}
@@ -177,6 +175,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="Property Type">
               <select
+                name="property_type"
                 className={selectCls}
                 value={form.property_type}
                 onChange={(e) => set('property_type', e.target.value)}
@@ -189,6 +188,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="Reason for Selling">
               <input
+                name="reason_for_selling"
                 className={inputCls}
                 value={form.reason_for_selling}
                 onChange={(e) => set('reason_for_selling', e.target.value)}
@@ -197,6 +197,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="Document Status">
               <input
+                name="document_status"
                 className={inputCls}
                 value={form.document_status}
                 onChange={(e) => set('document_status', e.target.value)}
@@ -212,6 +213,7 @@ export default function NewSellerLeadPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Source">
               <select
+                name="source"
                 className={selectCls}
                 value={form.source}
                 onChange={(e) => set('source', e.target.value)}
@@ -228,6 +230,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="Assigned To">
               <select
+                name="assigned_to"
                 className={selectCls}
                 value={form.assigned_to}
                 onChange={(e) => set('assigned_to', e.target.value)}
@@ -242,6 +245,7 @@ export default function NewSellerLeadPage() {
             </Field>
             <Field label="Follow Up Date">
               <input
+                name="follow_up_date"
                 className={inputCls}
                 type="date"
                 value={form.follow_up_date}
@@ -251,6 +255,7 @@ export default function NewSellerLeadPage() {
             <div className="sm:col-span-2 lg:col-span-3">
               <Field label="Notes">
                 <textarea
+                  name="notes"
                   className={inputCls + ' resize-none'}
                   rows={3}
                   value={form.notes}
@@ -262,6 +267,12 @@ export default function NewSellerLeadPage() {
           </div>
         </div>
 
+        {serverError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            {serverError}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pb-4">
           <Link
@@ -272,9 +283,10 @@ export default function NewSellerLeadPage() {
           </Link>
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            disabled={submitting}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60"
           >
-            Save Seller Lead
+            {submitting ? 'Saving...' : 'Save Seller Lead'}
           </button>
         </div>
       </form>

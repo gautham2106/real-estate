@@ -251,10 +251,11 @@ CREATE TABLE documents (
   folder TEXT NOT NULL CHECK (folder IN ('Legal','Survey','Photos','Owner Docs','Agreements')),
   document_name TEXT NOT NULL,
   file_url TEXT,
+  file_size INTEGER,
   status TEXT NOT NULL DEFAULT 'Pending' CHECK (status IN ('Pending','Received','Verified','Issue','Original Submitted')),
   issue_notes TEXT,
   uploaded_by TEXT,
-  upload_date TIMESTAMPTZ DEFAULT NOW(),
+  uploaded_at TIMESTAMPTZ DEFAULT NOW(),
   verified_by TEXT,
   verified_date TIMESTAMPTZ
 );

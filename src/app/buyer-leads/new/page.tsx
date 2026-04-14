@@ -71,31 +71,26 @@ const selectCls = inputCls + ' appearance-none'
 
 export default function NewBuyerLeadPage() {
   const [form, setForm] = useState<FormState>(initialForm)
-  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const set = (field: keyof FormState, value: string | boolean) =>
     setForm((f) => ({ ...f, [field]: value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setSubmitted(true)
-  }
-
-  if (submitted) {
-    return (
-      <div className="max-w-screen-xl space-y-6">
-        <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-          <p className="text-green-700 font-semibold text-lg">Buyer lead saved successfully!</p>
-          <p className="text-green-600 text-sm mt-1">The new buyer lead has been added to the system.</p>
-          <Link
-            href="/buyer-leads"
-            className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-          >
-            Back to Buyer Leads
-          </Link>
-        </div>
-      </div>
-    )
+    setSubmitting(true)
+    setServerError(null)
+    const formData = new FormData(e.currentTarget)
+    // Append boolean separately
+    formData.set('loan_required', form.loan_required ? 'true' : '')
+    const { createBuyerLeadAction } = await import('@/app/actions/leads')
+    const result = await createBuyerLeadAction(formData)
+    if (result?.error) {
+      setServerError(result.error)
+      setSubmitting(false)
+    }
+    // On success, the server action redirects
   }
 
   return (
@@ -122,6 +117,7 @@ export default function NewBuyerLeadPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Name" required>
               <input
+                name="name"
                 className={inputCls}
                 value={form.name}
                 onChange={(e) => set('name', e.target.value)}
@@ -131,6 +127,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Phone" required>
               <input
+                name="phone"
                 className={inputCls}
                 type="tel"
                 value={form.phone}
@@ -141,6 +138,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="WhatsApp Number">
               <input
+                name="whatsapp"
                 className={inputCls}
                 type="tel"
                 value={form.whatsapp}
@@ -150,6 +148,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Email">
               <input
+                name="email"
                 className={inputCls}
                 type="email"
                 value={form.email}
@@ -166,6 +165,7 @@ export default function NewBuyerLeadPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Budget Minimum (₹)">
               <input
+                name="budget_min"
                 className={inputCls}
                 type="number"
                 value={form.budget_min}
@@ -175,6 +175,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Budget Maximum (₹)">
               <input
+                name="budget_max"
                 className={inputCls}
                 type="number"
                 value={form.budget_max}
@@ -184,6 +185,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Preferred Location">
               <input
+                name="preferred_location"
                 className={inputCls}
                 value={form.preferred_location}
                 onChange={(e) => set('preferred_location', e.target.value)}
@@ -192,6 +194,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Property Type Needed">
               <select
+                name="property_type_needed"
                 className={selectCls}
                 value={form.property_type_needed}
                 onChange={(e) => set('property_type_needed', e.target.value)}
@@ -204,6 +207,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Area Required">
               <input
+                name="area_required"
                 className={inputCls}
                 value={form.area_required}
                 onChange={(e) => set('area_required', e.target.value)}
@@ -212,6 +216,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Purpose">
               <select
+                name="purpose"
                 className={selectCls}
                 value={form.purpose}
                 onChange={(e) => set('purpose', e.target.value)}
@@ -242,6 +247,7 @@ export default function NewBuyerLeadPage() {
               <div className="max-w-xs">
                 <Field label="Loan Amount (₹)">
                   <input
+                    name="loan_amount"
                     className={inputCls}
                     type="number"
                     value={form.loan_amount}
@@ -260,6 +266,7 @@ export default function NewBuyerLeadPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <Field label="Urgency">
               <select
+                name="urgency"
                 className={selectCls}
                 value={form.urgency}
                 onChange={(e) => set('urgency', e.target.value)}
@@ -271,6 +278,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Source">
               <select
+                name="source"
                 className={selectCls}
                 value={form.source}
                 onChange={(e) => set('source', e.target.value)}
@@ -285,6 +293,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Assigned To">
               <select
+                name="assigned_to"
                 className={selectCls}
                 value={form.assigned_to}
                 onChange={(e) => set('assigned_to', e.target.value)}
@@ -299,6 +308,7 @@ export default function NewBuyerLeadPage() {
             </Field>
             <Field label="Follow Up Date">
               <input
+                name="follow_up_date"
                 className={inputCls}
                 type="date"
                 value={form.follow_up_date}
@@ -308,6 +318,7 @@ export default function NewBuyerLeadPage() {
             <div className="sm:col-span-2">
               <Field label="Notes">
                 <textarea
+                  name="notes_history"
                   className={inputCls + ' resize-none'}
                   rows={3}
                   value={form.notes}
@@ -319,6 +330,12 @@ export default function NewBuyerLeadPage() {
           </div>
         </div>
 
+        {serverError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            {serverError}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pb-4">
           <Link
@@ -329,9 +346,10 @@ export default function NewBuyerLeadPage() {
           </Link>
           <button
             type="submit"
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            disabled={submitting}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60"
           >
-            Save Buyer Lead
+            {submitting ? 'Saving...' : 'Save Buyer Lead'}
           </button>
         </div>
       </form>

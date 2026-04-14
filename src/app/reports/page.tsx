@@ -36,9 +36,131 @@ const propBreakdown = [
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState<ReportTab>('Overview')
+  const [exporting, setExporting] = useState<'PDF' | 'Excel' | null>(null)
+
+  const handleExportExcel = async () => {
+    setExporting('Excel')
+    try {
+      const XLSX = (await import('xlsx')).default
+      const wb = XLSX.utils.book_new()
+
+      // Deals sheet
+      const dealsData = mockDeals.map(d => ({
+        'Deal ID': d.deal_id, 'Title': d.deal_title, 'Deal Value': d.deal_value,
+        'Total Commission': d.total_commission ?? 0, 'Your Net': d.your_net ?? 0, 'Status': d.status,
+        'Created': new Date(d.created_at).toLocaleDateString('en-IN'),
+      }))
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dealsData), 'Deals')
+
+      // Brokers sheet
+      const brokersData = mockBrokers.map(b => ({
+        'Broker ID': b.broker_id, 'Name': b.name, 'Tier': b.tier_level,
+        'Deals Closed': b.deals_closed ?? 0, 'Commission': b.total_commission_earned ?? 0,
+        'Status': b.status, 'Joined': b.joined_date,
+      }))
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(brokersData), 'Brokers')
+
+      // Properties sheet
+      const propsData = mockProperties.map(p => ({
+        'Land Code': p.land_code, 'Title': p.title, 'Type': p.type,
+        'Area': `${p.area} ${p.area_unit}`, 'Price': p.price, 'Status': p.status,
+        'District': p.district ?? '', 'Classification': p.classification,
+      }))
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(propsData), 'Properties')
+
+      // Monthly overview
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(monthlyOverview), 'Monthly Summary')
+
+      // Leads
+      const leadsData = [
+        ...mockBuyerLeads.map(l => ({ 'Lead ID': l.lead_id, 'Type': 'Buyer', 'Name': l.name, 'Phone': l.phone, 'Status': l.status, 'Source': l.source ?? '' })),
+        ...mockSellerLeads.map(l => ({ 'Lead ID': l.lead_id, 'Type': 'Seller', 'Name': l.owner_name, 'Phone': l.phone, 'Status': l.status, 'Source': l.source ?? '' })),
+      ]
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(leadsData), 'Leads')
+
+      XLSX.writeFile(wb, `bluesquare-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+    } finally {
+      setExporting(null)
+    }
+  }
+
+  const handleExportPDF = async () => {
+    setExporting('PDF')
+    try {
+      const { jsPDF } = await import('jspdf')
+      const doc = new jsPDF()
+      const today = new Date().toLocaleDateString('en-IN')
+      let y = 20
+
+      // Header
+      doc.setFontSize(18)
+      doc.setTextColor(30, 64, 175)
+      doc.text('Bluesquare Real Estate CRM', 20, y); y += 8
+      doc.setFontSize(10)
+      doc.setTextColor(100, 116, 139)
+      doc.text(`Report generated: ${today}`, 20, y); y += 12
+
+      // Summary stats
+      doc.setFontSize(13)
+      doc.setTextColor(15, 23, 42)
+      doc.text('Summary', 20, y); y += 7
+      doc.setFontSize(10)
+      doc.setTextColor(71, 85, 105)
+      const totalRevenue = monthlyOverview.reduce((s, r) => s + r.revenue, 0)
+      const stats = [
+        `Total Deals: ${mockDeals.length}`,
+        `Total Brokers: ${mockBrokers.length}`,
+        `Total Properties: ${mockProperties.length}`,
+        `Total Leads: ${mockBuyerLeads.length + mockSellerLeads.length}`,
+        `6-Month Revenue: ₹${(totalRevenue / 100000).toFixed(2)}L`,
+      ]
+      stats.forEach(s => { doc.text(`• ${s}`, 24, y); y += 6 })
+      y += 4
+
+      // Top Brokers
+      doc.setFontSize(13)
+      doc.setTextColor(15, 23, 42)
+      doc.text('Top Brokers', 20, y); y += 7
+      doc.setFontSize(9)
+      doc.setTextColor(71, 85, 105)
+      doc.text('Name', 24, y); doc.text('Tier', 80, y); doc.text('Deals', 110, y); doc.text('Commission', 140, y); y += 5
+      doc.setDrawColor(226, 232, 240); doc.line(20, y, 190, y); y += 4
+      mockBrokers.slice(0, 5).forEach((b, i) => {
+        doc.text(b.name, 24, y)
+        doc.text(b.tier_level, 80, y)
+        doc.text(String(b.deals_closed ?? 0), 110, y)
+        doc.text(`₹${((b.total_commission_earned ?? 0) / 100000).toFixed(1)}L`, 140, y)
+        if (i < 4) { doc.setDrawColor(241, 245, 249); doc.line(20, y + 2, 190, y + 2) }
+        y += 7
+      })
+      y += 4
+
+      // Recent Deals
+      doc.setFontSize(13)
+      doc.setTextColor(15, 23, 42)
+      doc.text('Deals', 20, y); y += 7
+      doc.setFontSize(9)
+      doc.setTextColor(71, 85, 105)
+      doc.text('Deal ID', 24, y); doc.text('Value', 80, y); doc.text('Commission', 120, y); doc.text('Status', 160, y); y += 5
+      doc.setDrawColor(226, 232, 240); doc.line(20, y, 190, y); y += 4
+      mockDeals.forEach(d => {
+        doc.text(d.deal_id, 24, y)
+        doc.text(`₹${(d.deal_value / 100000).toFixed(1)}L`, 80, y)
+        doc.text(`₹${((d.total_commission ?? 0) / 1000).toFixed(0)}K`, 120, y)
+        doc.text(d.status, 160, y)
+        y += 6
+        if (y > 270) { doc.addPage(); y = 20 }
+      })
+
+      doc.save(`bluesquare-report-${new Date().toISOString().split('T')[0]}.pdf`)
+    } finally {
+      setExporting(null)
+    }
+  }
 
   const handleExport = (type: 'PDF' | 'Excel') => {
-    alert(`${type} export coming soon! Connect Supabase to enable real data exports.`)
+    if (type === 'Excel') handleExportExcel()
+    else handleExportPDF()
   }
 
   return (
@@ -48,15 +170,15 @@ export default function ReportsPage() {
         subtitle="Business intelligence and performance analytics"
         action={
           <div className="flex gap-2">
-            <button onClick={() => handleExport('Excel')}
-              className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+            <button onClick={() => handleExport('Excel')} disabled={!!exporting}
+              className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-60 transition-colors">
               <Download size={14} />
-              Excel
+              {exporting === 'Excel' ? 'Exporting…' : 'Excel'}
             </button>
-            <button onClick={() => handleExport('PDF')}
-              className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors">
+            <button onClick={() => handleExport('PDF')} disabled={!!exporting}
+              className="flex items-center gap-1.5 px-3 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-60 transition-colors">
               <FileText size={14} />
-              PDF
+              {exporting === 'PDF' ? 'Exporting…' : 'PDF'}
             </button>
           </div>
         }

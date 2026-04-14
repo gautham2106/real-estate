@@ -1,7 +1,8 @@
 'use client'
 
-import { Bell, Search, User } from 'lucide-react'
+import { Bell, Search, User, LogOut } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import { signOut } from '@/app/actions/auth'
 
 const titleMap: Record<string, string> = {
   '/dashboard': 'Dashboard',
@@ -22,10 +23,17 @@ const titleMap: Record<string, string> = {
   '/reports': 'Reports',
 }
 
-export default function Header() {
+interface HeaderProps {
+  userEmail?: string | null
+  role?: 'admin' | 'broker' | null
+}
+
+export default function Header({ userEmail, role }: HeaderProps) {
   const pathname = usePathname()
   const base = '/' + pathname.split('/')[1]
   const title = titleMap[base] ?? 'Bluesquare CRM'
+
+  const displayName = role === 'admin' ? 'Admin' : role === 'broker' ? 'Broker' : 'User'
 
   return (
     <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
@@ -42,14 +50,28 @@ export default function Header() {
           <Bell size={18} className="text-slate-600" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
         </button>
-        <div className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 rounded-lg px-2 py-1 transition-colors">
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-            <User size={16} className="text-white" />
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 cursor-pointer hover:bg-slate-100 rounded-lg px-2 py-1 transition-colors">
+            <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+              <User size={16} className="text-white" />
+            </div>
+            <div className="text-sm">
+              <div className="font-medium text-slate-800 leading-tight">{displayName}</div>
+              <div className="text-xs text-slate-500 truncate max-w-[120px]">
+                {userEmail ?? 'Bluesquare'}
+              </div>
+            </div>
           </div>
-          <div className="text-sm">
-            <div className="font-medium text-slate-800 leading-tight">Admin</div>
-            <div className="text-xs text-slate-500">Bluesquare</div>
-          </div>
+          <form action={signOut}>
+            <button
+              type="submit"
+              title="Sign out"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <LogOut size={15} />
+              <span>Sign out</span>
+            </button>
+          </form>
         </div>
       </div>
     </header>

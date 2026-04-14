@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
+import ShapePreview from '@/components/ui/ShapePreview'
 
 interface FormState {
   // Identity
@@ -86,13 +87,22 @@ const selectCls = inputCls + ' appearance-none'
 export default function NewPropertyPage() {
   const [form, setForm] = useState<FormState>(initialForm)
   const [submitted, setSubmitted] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
-  const set = (field: keyof FormState, value: string | boolean) =>
+  const set = (field: keyof FormState | string, value: string | boolean) =>
     setForm((f) => ({ ...f, [field]: value }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setSubmitted(true)
+    setServerError(null)
+    const formData = new FormData(e.currentTarget)
+    const { createPropertyAction } = await import('@/app/actions/properties')
+    const result = await createPropertyAction(formData)
+    if (result?.error) {
+      setServerError(result.error)
+    } else {
+      setSubmitted(true)
+    }
   }
 
   if (submitted) {
@@ -172,6 +182,34 @@ export default function NewPropertyPage() {
             <Field label="Price (₹)" required>
               <input className={inputCls} type="number" value={form.price} onChange={(e) => set('price', e.target.value)} placeholder="e.g. 1800000" required />
             </Field>
+          </div>
+
+          {/* Shape measurements + live preview */}
+          <div className="mt-5 pt-4 border-t border-slate-100">
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-3">Shape Measurements</p>
+            <div className="flex flex-col lg:flex-row gap-5">
+              <div className="grid grid-cols-2 gap-3 flex-1">
+                {(['side_a', 'side_b', 'side_c', 'side_d'] as const).map((k, i) => (
+                  <Field key={k} label={`Side ${['A (Top)', 'B (Right)', 'C (Bottom)', 'D (Left)'][i]}`}>
+                    <input
+                      className={inputCls}
+                      type="number"
+                      name={k}
+                      value={(form as unknown as Record<string, string>)[k] ?? ''}
+                      onChange={e => set(k, e.target.value)}
+                      placeholder="in feet"
+                    />
+                  </Field>
+                ))}
+              </div>
+              <ShapePreview
+                sideA={parseFloat((form as unknown as Record<string, string>).side_a ?? '0') || 0}
+                sideB={parseFloat((form as unknown as Record<string, string>).side_b ?? '0') || 0}
+                sideC={parseFloat((form as unknown as Record<string, string>).side_c ?? '0') || 0}
+                sideD={parseFloat((form as unknown as Record<string, string>).side_d ?? '0') || 0}
+                unit="ft"
+              />
+            </div>
           </div>
         </div>
 
@@ -369,6 +407,11 @@ export default function NewPropertyPage() {
         </div>
 
         {/* Actions */}
+        {serverError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            {serverError}
+          </div>
+        )}
         <div className="flex items-center justify-end gap-3 pb-4">
           <Link
             href="/properties"

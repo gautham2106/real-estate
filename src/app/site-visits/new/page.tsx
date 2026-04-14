@@ -12,14 +12,22 @@ export default function NewSiteVisitPage() {
     price_discussed: '', objections: '', internal_note: '',
     next_action: '', next_action_date: '',
   })
-  const [saved, setSaved] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+    setSubmitting(true)
+    setServerError(null)
+    const formData = new FormData(e.currentTarget)
+    const { createSiteVisitAction } = await import('@/app/actions/site-visits')
+    const result = await createSiteVisitAction(formData)
+    if (result?.error) {
+      setServerError(result.error)
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -41,7 +49,7 @@ export default function NewSiteVisitPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Property *</label>
-              <select required value={form.property_id} onChange={e => set('property_id', e.target.value)}
+              <select required name="property_id" value={form.property_id} onChange={e => set('property_id', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Select property...</option>
                 {mockProperties.map(p => (
@@ -51,7 +59,7 @@ export default function NewSiteVisitPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Buyer *</label>
-              <select required value={form.buyer_id} onChange={e => set('buyer_id', e.target.value)}
+              <select required name="buyer_id" value={form.buyer_id} onChange={e => set('buyer_id', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Select buyer...</option>
                 {mockBuyerLeads.map(b => (
@@ -61,17 +69,17 @@ export default function NewSiteVisitPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Visit Date *</label>
-              <input type="date" required value={form.visit_date} onChange={e => set('visit_date', e.target.value)}
+              <input type="date" required name="visit_date" value={form.visit_date} onChange={e => set('visit_date', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Visit Time</label>
-              <input type="time" value={form.visit_time} onChange={e => set('visit_time', e.target.value)}
+              <input type="time" name="visit_time" value={form.visit_time} onChange={e => set('visit_time', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Broker Arranged</label>
-              <select value={form.broker_id} onChange={e => set('broker_id', e.target.value)}
+              <select name="broker_id" value={form.broker_id} onChange={e => set('broker_id', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Select broker...</option>
                 {mockBrokers.map(b => (
@@ -81,7 +89,7 @@ export default function NewSiteVisitPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Buyer Reaction</label>
-              <select value={form.buyer_reaction} onChange={e => set('buyer_reaction', e.target.value)}
+              <select name="buyer_reaction" value={form.buyer_reaction} onChange={e => set('buyer_reaction', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Select reaction...</option>
                 {['Interested', 'Not Interested', 'Negotiating', 'Need Time'].map(r => (
@@ -91,13 +99,13 @@ export default function NewSiteVisitPage() {
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Price Discussed (₹)</label>
-              <input type="number" value={form.price_discussed} onChange={e => set('price_discussed', e.target.value)}
+              <input type="number" name="price_discussed" value={form.price_discussed} onChange={e => set('price_discussed', e.target.value)}
                 placeholder="e.g. 1750000"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Objections</label>
-              <input type="text" value={form.objections} onChange={e => set('objections', e.target.value)}
+              <input type="text" name="objections" value={form.objections} onChange={e => set('objections', e.target.value)}
                 placeholder="Any concerns raised..."
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
@@ -105,21 +113,21 @@ export default function NewSiteVisitPage() {
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Buyer Remarks</label>
-            <textarea rows={2} value={form.buyer_remarks} onChange={e => set('buyer_remarks', e.target.value)}
+            <textarea rows={2} name="buyer_remarks" value={form.buyer_remarks} onChange={e => set('buyer_remarks', e.target.value)}
               placeholder="What the buyer said about the property..."
               className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Owner Remarks</label>
-            <textarea rows={2} value={form.owner_remarks} onChange={e => set('owner_remarks', e.target.value)}
+            <textarea rows={2} name="owner_remarks" value={form.owner_remarks} onChange={e => set('owner_remarks', e.target.value)}
               placeholder="Owner's response / flexibility..."
               className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Internal Note</label>
-            <textarea rows={2} value={form.internal_note} onChange={e => set('internal_note', e.target.value)}
+            <textarea rows={2} name="internal_note" value={form.internal_note} onChange={e => set('internal_note', e.target.value)}
               placeholder="Admin-only observation..."
               className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" />
           </div>
@@ -127,23 +135,29 @@ export default function NewSiteVisitPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Next Action</label>
-              <input type="text" value={form.next_action} onChange={e => set('next_action', e.target.value)}
+              <input type="text" name="next_action" value={form.next_action} onChange={e => set('next_action', e.target.value)}
                 placeholder="e.g. Negotiate price"
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Next Action Date</label>
-              <input type="date" value={form.next_action_date} onChange={e => set('next_action_date', e.target.value)}
+              <input type="date" name="next_action_date" value={form.next_action_date} onChange={e => set('next_action_date', e.target.value)}
                 className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
         </div>
 
+        {serverError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+            {serverError}
+          </div>
+        )}
+
         <div className="flex gap-3">
-          <button type="submit"
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+          <button type="submit" disabled={submitting}
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60">
             <Save size={15} />
-            {saved ? 'Saved!' : 'Save Visit'}
+            {submitting ? 'Saving...' : 'Save Visit'}
           </button>
           <Link href="/site-visits"
             className="px-5 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
