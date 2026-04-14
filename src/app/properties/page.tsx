@@ -2,17 +2,12 @@ import Link from 'next/link'
 import { Building2, CheckCircle, TrendingUp, PlusCircle } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import StatCard from '@/components/ui/StatCard'
-import Badge from '@/components/ui/Badge'
-import DataTable from '@/components/ui/DataTable'
-import { formatCurrency } from '@/lib/utils'
 import { getUserRole } from '@/lib/auth'
 import { getProperties } from '@/lib/dal'
 import { mockProperties, mockBrokers } from '@/lib/mock-data'
-import type { Property } from '@/types'
+import PropertiesTable from '@/components/properties/PropertiesTable'
 
 const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL
-
-const brokerMap = Object.fromEntries(mockBrokers.map((b) => [b.broker_id, b.name]))
 
 export default async function PropertiesPage() {
   const [role, properties] = await Promise.all([
@@ -23,33 +18,6 @@ export default async function PropertiesPage() {
 
   const available = properties.filter(p => p.status === 'Available').length
   const negotiatingOrSold = properties.filter(p => p.status === 'Negotiating' || p.status === 'Sold').length
-
-  const columns = [
-    { key: 'land_code', header: 'Land Code', sortable: true },
-    { key: 'title', header: 'Title', sortable: true },
-    { key: 'type', header: 'Type', sortable: true },
-    { key: 'area', header: 'Area', render: (row: Property) => `${row.area} ${row.area_unit}` },
-    { key: 'price', header: 'Price', render: (row: Property) => <span className="font-semibold text-slate-800">{formatCurrency(row.price)}</span> },
-    { key: 'status', header: 'Status', render: (row: Property) => <Badge status={row.status} /> },
-    { key: 'district', header: 'District', render: (row: Property) => row.district ?? '—' },
-    {
-      key: 'assigned_broker_id', header: 'Broker',
-      render: (row: Property) => row.assigned_broker_id ? brokerMap[row.assigned_broker_id] ?? row.assigned_broker_id : '—',
-    },
-    // Owner details: admin only
-    ...(isAdmin ? [
-      { key: 'owner_name', header: 'Owner', render: (row: Property) => row.owner_name ?? '—' },
-      { key: 'owner_phone', header: 'Owner Phone', render: (row: Property) => row.owner_phone ?? '—' },
-    ] : []),
-    {
-      key: 'action', header: '',
-      render: (row: Property) => (
-        <Link href={`/properties/${row.id}`} className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors">
-          View
-        </Link>
-      ),
-    },
-  ]
 
   return (
     <div className="space-y-6 max-w-screen-xl">
@@ -78,11 +46,10 @@ export default async function PropertiesPage() {
         </div>
       )}
 
-      <DataTable<Record<string, unknown>>
-        data={properties as unknown as Record<string, unknown>[]}
-        columns={columns as Parameters<typeof DataTable>[0]['columns']}
-        searchKeys={['land_code', 'title', 'district', 'type'] as never[]}
-        emptyMessage="No properties found"
+      <PropertiesTable
+        properties={properties}
+        isAdmin={isAdmin}
+        brokerEntries={mockBrokers.map((b) => [b.broker_id, b.name])}
       />
     </div>
   )
