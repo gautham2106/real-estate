@@ -87,7 +87,7 @@ export default function ReportsPage() {
   const handleExportPDF = async () => {
     setExporting('PDF')
     try {
-      const { jsPDF } = await import('jspdf')
+      const { default: jsPDF } = await import('jspdf')
       const doc = new jsPDF()
       const today = new Date().toLocaleDateString('en-IN')
       let y = 20
