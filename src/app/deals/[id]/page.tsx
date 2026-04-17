@@ -2,14 +2,17 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Building2, User, Handshake, TrendingUp } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
+import DeleteButton from '@/components/ui/DeleteButton'
 import { getDealById, getPropertyById, getBuyerLeadById, getBrokers } from '@/lib/dal'
+import { getUserRole } from '@/lib/auth'
+import { deleteDealAction } from '@/app/actions/deals'
 import { formatCurrency } from '@/lib/utils'
 
 export default async function DealDetailPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
-  const [deal, brokers] = await Promise.all([getDealById(id), getBrokers()])
+  const [deal, brokers, role] = await Promise.all([getDealById(id), getBrokers(), getUserRole()])
 
   if (!deal) notFound()
 
@@ -39,12 +42,14 @@ export default async function DealDetailPage(props: {
             <h1 className="text-xl font-bold text-slate-800">{deal.deal_title}</h1>
             <p className="text-sm text-slate-500 mt-0.5">Created {new Date(deal.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           </div>
-          <Link
-            href={`/deals/new`}
-            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            + New Deal
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/deals/${id}/edit`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              Edit
+            </Link>
+            {role === 'admin' && (
+              <DeleteButton onDelete={deleteDealAction.bind(null, id)} redirectTo="/deals" />
+            )}
+          </div>
         </div>
       </div>
 

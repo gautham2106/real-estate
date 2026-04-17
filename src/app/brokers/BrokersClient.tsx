@@ -84,6 +84,14 @@ const columns = [
       </span>
     ),
   },
+  {
+    key: 'action', header: '',
+    render: (row: Broker) => (
+      <Link href={`/brokers/${row.id}`} className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors">
+        View
+      </Link>
+    ),
+  },
 ]
 
 interface BrokersClientProps {

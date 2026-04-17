@@ -1,11 +1,10 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
-import type { Document, DocumentFolder, DocumentStatus } from '@/types'
+import type { PropertyDocument, DocumentFolder, DocumentStatus } from '@/types'
 
 const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL
 
-// Required documents per folder (checklist template)
 const REQUIRED_DOCS: Record<DocumentFolder, string[]> = {
   Legal: ['Title Deed', 'EC (Encumbrance Certificate)', 'Patta', 'Chitta'],
   Survey: ['FMB Sketch', 'Survey Map'],
@@ -14,13 +13,12 @@ const REQUIRED_DOCS: Record<DocumentFolder, string[]> = {
   Agreements: ['Exclusivity Agreement', 'MOU', 'Sale Agreement'],
 }
 
-// In-memory mock store for demo mode
-const mockDocuments: Document[] = []
+const mockDocuments: PropertyDocument[] = []
 
 export async function getDocumentsByProperty(
   propertyId: string,
   folder?: string
-): Promise<Document[]> {
+): Promise<PropertyDocument[]> {
   if (isDemoMode) {
     let results = mockDocuments.filter((d) => d.property_id === propertyId)
     if (folder) results = results.filter((d) => d.folder === folder)
@@ -40,9 +38,9 @@ export async function getDocumentsByProperty(
   return data ?? []
 }
 
-export async function createDocument(data: Partial<Document>): Promise<Document> {
+export async function createDocument(data: Partial<PropertyDocument>): Promise<PropertyDocument> {
   if (isDemoMode) {
-    const mock: Document = {
+    const mock: PropertyDocument = {
       id: crypto.randomUUID(),
       document_id: `DOC-${String(mockDocuments.length + 1).padStart(3, '0')}`,
       property_id: data.property_id ?? '',
@@ -50,6 +48,7 @@ export async function createDocument(data: Partial<Document>): Promise<Document>
       document_name: data.document_name ?? '',
       status: data.status ?? 'Pending',
       upload_date: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       ...data,
     }
     mockDocuments.push(mock)
@@ -86,7 +85,7 @@ export async function updateDocumentStatus(
   id: string,
   status: DocumentStatus,
   verifiedBy?: string
-): Promise<Document> {
+): Promise<PropertyDocument> {
   if (isDemoMode) {
     const idx = mockDocuments.findIndex((d) => d.id === id)
     if (idx !== -1) {
@@ -98,12 +97,11 @@ export async function updateDocumentStatus(
       }
       return mockDocuments[idx]
     }
-    // Return a minimal stub so callers don't crash
-    return { id, status } as Document
+    return { id, status, created_at: new Date().toISOString() } as PropertyDocument
   }
 
   const supabase = await createClient()
-  const updateData: Partial<Document> = { status }
+  const updateData: Partial<PropertyDocument> = { status }
   if (verifiedBy) {
     updateData.verified_by = verifiedBy
     updateData.verified_date = new Date().toISOString()
@@ -157,11 +155,9 @@ export async function uploadDocumentFile(
   file: File
 ): Promise<string> {
   if (isDemoMode) {
-    // In demo mode return a placeholder URL
     return `https://demo.storage/${propertyId}/${folder}/${fileName}`
   }
 
-  // Fetch the property to get its land_code for the storage path
   const supabase = await createClient()
   const { data: property, error: propErr } = await supabase
     .from('properties')

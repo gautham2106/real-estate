@@ -93,6 +93,53 @@ export async function deleteDealAction(id: string) {
   return {}
 }
 
+export async function updateDealAction(id: string, formData: FormData) {
+  const raw = Object.fromEntries(formData.entries())
+  const parsed = dealSchema.safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  if (isDemoMode) { revalidatePath('/deals'); return {} }
+
+  const supabase = await createClient()
+  const comm = calcCommission(
+    parsed.data.deal_value, parsed.data.buyer_commission_pct, parsed.data.seller_commission_pct,
+    !!parsed.data.has_referral, !!parsed.data.has_tier1, !!parsed.data.has_tier2
+  )
+  const [{ data: prop }, { data: buyer }] = await Promise.all([
+    supabase.from('properties').select('land_code').eq('id', parsed.data.property_id).single(),
+    supabase.from('buyer_leads').select('name').eq('id', parsed.data.buyer_lead_id).single(),
+  ])
+  const deal_title = `${prop?.land_code ?? 'Property'} × ${buyer?.name ?? 'Buyer'}`
+
+  const { error } = await supabase.from('deals').update({
+    deal_title,
+    property_id: parsed.data.property_id,
+    buyer_lead_id: parsed.data.buyer_lead_id,
+    seller_lead_id: parsed.data.seller_lead_id || null,
+    buyer_broker_id: parsed.data.buyer_broker_id || null,
+    seller_broker_id: parsed.data.seller_broker_id || null,
+    referral_broker_id: parsed.data.referral_broker_id || null,
+    deal_value: parsed.data.deal_value,
+    buyer_commission_pct: parsed.data.buyer_commission_pct,
+    seller_commission_pct: parsed.data.seller_commission_pct,
+    buyer_broker_payout: comm.buyerBrokerPayout,
+    seller_broker_payout: comm.sellerBrokerPayout,
+    referral_payout: comm.referralPayout,
+    tier1_override_payout: comm.tier1OverridePayout,
+    tier2_override_payout: comm.tier2OverridePayout,
+    your_net: comm.yourNet,
+    token_amount: parsed.data.token_amount ?? null,
+    token_date: parsed.data.token_date ?? null,
+    notes: parsed.data.notes ?? null,
+  }).eq('id', id)
+  if (error) return { error: error.message }
+  await logActivity('Deal Updated', `Updated deal ${id}`)
+  revalidatePath('/deals')
+  revalidatePath(`/deals/${id}`)
+  revalidatePath('/kanban')
+  return {}
+}
+
 export async function updateDealStatusAction(id: string, status: string) {
   if (isDemoMode) { revalidatePath('/deals'); revalidatePath('/kanban'); return { success: true } }
   const supabase = await createClient()

@@ -137,10 +137,10 @@ export default function SiteVisitsClient({ siteVisits, properties, buyerLeads, b
                     <p className="text-slate-600 mt-0.5">{v.next_action}</p>
                   </div>
                 )}
-                <button className="flex items-center gap-1 px-3 py-1.5 text-xs text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
+                <Link href={`/site-visits/${v.id}`} className="flex items-center gap-1 px-3 py-1.5 text-xs text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
                   <Eye size={12} />
                   View
-                </button>
+                </Link>
               </div>
             </div>
           ))

@@ -10,6 +10,7 @@ import type {
   Broker,
   Alert,
   Book,
+  PropertyDocument,
 } from '@/types'
 
 // ─── DASHBOARD ───────────────────────────────────────────
@@ -252,5 +253,34 @@ export const mockBooks: Book[] = [
   {
     id: '1', book_id: 'BK-001', book_name: 'Rasipuram Plots 2026', description: 'All residential plots in Rasipuram area',
     property_ids: ['1'], total_properties: 1, total_value: 1800000, status: 'Active', created_at: '2026-01-01T00:00:00Z',
+  },
+]
+
+// ─── DOCUMENTS ────────────────────────────────────────────
+
+export const mockDocuments: PropertyDocument[] = [
+  {
+    id: '1', document_id: 'DOC-001', property_id: '1', folder: 'Legal',
+    document_name: 'Patta (Land Record)', file_url: null, file_size: null,
+    status: 'Received', issue_notes: null, uploaded_by: 'Arjun Kumar',
+    upload_date: '2026-04-10', verified_by: null, created_at: '2026-04-10T10:00:00Z',
+  },
+  {
+    id: '2', document_id: 'DOC-002', property_id: '1', folder: 'Survey',
+    document_name: 'Survey FMB Sketch', file_url: null, file_size: null,
+    status: 'Pending', issue_notes: 'Waiting from village office', uploaded_by: 'Arjun Kumar',
+    upload_date: '2026-04-10', verified_by: null, created_at: '2026-04-10T10:05:00Z',
+  },
+  {
+    id: '3', document_id: 'DOC-003', property_id: '2', folder: 'Legal',
+    document_name: 'Sale Deed (Draft)', file_url: null, file_size: null,
+    status: 'Issue', issue_notes: 'Seller name mismatch — needs correction', uploaded_by: 'Priya Sharma',
+    upload_date: '2026-04-12', verified_by: null, created_at: '2026-04-12T09:00:00Z',
+  },
+  {
+    id: '4', document_id: 'DOC-004', property_id: '1', folder: 'Owner Docs',
+    document_name: 'Owner Aadhaar Card', file_url: null, file_size: null,
+    status: 'Verified', issue_notes: null, uploaded_by: 'Arjun Kumar',
+    upload_date: '2026-04-11', verified_by: 'Admin', created_at: '2026-04-11T11:00:00Z',
   },
 ]

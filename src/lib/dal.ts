@@ -3,12 +3,12 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import {
   mockProperties, mockBuyerLeads, mockSellerLeads, mockDeals,
-  mockBrokers, mockSiteVisits, mockAlerts, mockBooks, mockMetrics,
-  mockLeaderboard, mockRecentActivity,
+  mockBrokers, mockSiteVisits, mockAlerts, mockBooks, mockDocuments,
+  mockMetrics, mockLeaderboard, mockRecentActivity,
 } from '@/lib/mock-data'
 import type {
   Property, SellerLead, BuyerLead, SiteVisit, Deal, Broker,
-  Document, Book, Alert, DashboardMetrics, LeaderboardEntry, RecentActivity,
+  PropertyDocument, Book, Alert, DashboardMetrics, LeaderboardEntry, RecentActivity,
 } from '@/types'
 
 export const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -155,6 +155,13 @@ export async function getSiteVisitsByProperty(propertyId: string): Promise<SiteV
   return (data ?? []) as SiteVisit[]
 }
 
+export async function getSiteVisitById(id: string): Promise<SiteVisit | null> {
+  if (isDemoMode) return mockSiteVisits.find(v => v.id === id) ?? null
+  const supabase = await createClient()
+  const { data } = await supabase.from('site_visits').select('*').eq('id', id).single()
+  return data as SiteVisit | null
+}
+
 export async function getSiteVisitsByBuyer(buyerId: string): Promise<SiteVisit[]> {
   if (isDemoMode) {
     return mockSiteVisits
@@ -275,17 +282,39 @@ export async function getLeaderboard(limit = 5): Promise<LeaderboardEntry[]> {
 
 // ─── DOCUMENTS ────────────────────────────────────────────
 
-export async function getDocumentsByProperty(propertyId: string, folder?: string): Promise<Document[]> {
+export async function getDocumentsByProperty(propertyId: string, folder?: string): Promise<PropertyDocument[]> {
   if (isDemoMode) return []
   const supabase = await createClient()
   let query = supabase.from('documents').select('*').eq('property_id', propertyId)
   if (folder) query = query.eq('folder', folder)
   const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as Document[]
+  return (data ?? []) as PropertyDocument[]
+}
+
+export async function getDocumentById(id: string): Promise<PropertyDocument | null> {
+  if (isDemoMode) return mockDocuments.find(d => d.id === id) ?? null
+  const supabase = await createClient()
+  const { data } = await supabase.from('documents').select('*').eq('id', id).single()
+  return data as PropertyDocument | null
+}
+
+export async function getAllDocuments(): Promise<PropertyDocument[]> {
+  if (isDemoMode) return mockDocuments
+  const supabase = await createClient()
+  const { data, error } = await supabase.from('documents').select('*').order('uploaded_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as PropertyDocument[]
 }
 
 // ─── BOOKS ────────────────────────────────────────────────
+
+export async function getBookById(id: string): Promise<Book | null> {
+  if (isDemoMode) return mockBooks.find(b => b.id === id) ?? null
+  const supabase = await createClient()
+  const { data } = await supabase.from('books').select('*').eq('id', id).single()
+  return data as Book | null
+}
 
 export async function getBooks(): Promise<Book[]> {
   if (isDemoMode) return mockBooks

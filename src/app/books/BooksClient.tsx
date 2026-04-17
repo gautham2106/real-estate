@@ -24,14 +24,14 @@ const columns = [
   { key: 'actions', header: '',
     render: (row: Book) => (
       <div className="flex items-center gap-2">
-        <button className="text-xs text-blue-600 hover:underline">View</button>
-        <button className="text-xs text-slate-400 hover:text-slate-600">Edit</button>
+        <Link href={`/books/${row.id}`} className="text-xs px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium transition-colors">View</Link>
+        <Link href={`/books/${row.id}/edit`} className="text-xs px-3 py-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 font-medium transition-colors">Edit</Link>
       </div>
     ) },
 ]
 
 const mobileCard = (row: Book) => (
-  <Link href="#" className="block px-4 py-3 hover:bg-slate-50 transition-colors">
+  <Link href={`/books/${row.id}`} className="block px-4 py-3 hover:bg-slate-50 transition-colors">
     <div className="flex items-start justify-between gap-2 mb-1.5">
       <div>
         <span className="font-mono text-xs font-bold text-blue-700">{row.book_id}</span>

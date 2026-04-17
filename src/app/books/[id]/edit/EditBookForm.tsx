@@ -2,15 +2,30 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, BookOpen } from 'lucide-react'
-import { createBookAction } from '@/app/actions/books'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
+import type { Book, Property } from '@/types'
+import { updateBookAction } from '@/app/actions/books'
 
 const inputCls = 'border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white w-full'
 
-export default function NewBookPage() {
+interface Props {
+  book: Book
+  allProperties: Property[]
+}
+
+export default function EditBookForm({ book, allProperties }: Props) {
+  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-  const [landCodes, setLandCodes] = useState('')
+
+  // Build initial land codes from linked property IDs
+  const linkedCodes = allProperties
+    .filter(p => book.property_ids?.includes(p.id))
+    .map(p => p.land_code)
+    .join(', ')
+
+  const [landCodes, setLandCodes] = useState(linkedCodes)
   const previewCodes = landCodes.split(',').map(c => c.trim()).filter(Boolean)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -19,18 +34,19 @@ export default function NewBookPage() {
     setError(null)
     const fd = new FormData(e.currentTarget)
     fd.set('land_codes', landCodes)
-    const result = await createBookAction(fd)
+    const result = await updateBookAction(book.id, fd)
     setSaving(false)
-    if (result?.error) setError(result.error)
+    if (result?.error) { setError(result.error); return }
+    router.push(`/books/${book.id}`)
   }
 
   return (
     <div className="space-y-6 max-w-2xl">
       <div>
-        <Link href="/books" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3">
-          <ArrowLeft size={14} /> Back to Books
+        <Link href={`/books/${book.id}`} className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3">
+          <ArrowLeft size={14} /> Back to Book
         </Link>
-        <h1 className="text-xl font-bold text-slate-800">Create Book</h1>
+        <h1 className="text-xl font-bold text-slate-800">Edit Book — {book.book_name}</h1>
       </div>
 
       {error && <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">{error}</div>}
@@ -38,22 +54,22 @@ export default function NewBookPage() {
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Book Name <span className="text-red-500">*</span></label>
-          <input name="book_name" className={inputCls} placeholder="e.g. Rasipuram Plots Q2 2026" required />
+          <input name="book_name" className={inputCls} defaultValue={book.book_name} required />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Description</label>
-          <textarea name="description" className={inputCls} rows={3} placeholder="Brief description..." />
+          <textarea name="description" className={inputCls} rows={3} defaultValue={book.description ?? ''} />
         </div>
         <div>
           <label className="block text-xs font-medium text-slate-600 mb-1">Status</label>
-          <select name="status" className={inputCls} defaultValue="Open">
+          <select name="status" className={inputCls} defaultValue={book.status}>
             <option value="Open">Open</option>
             <option value="Active">Active</option>
             <option value="Archived">Archived</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">Link Properties (land codes, comma-separated)</label>
+          <label className="block text-xs font-medium text-slate-600 mb-1">Linked Properties (land codes)</label>
           <input
             className={inputCls}
             value={landCodes}
@@ -71,11 +87,10 @@ export default function NewBookPage() {
 
         <div className="flex gap-3 pt-2 border-t border-slate-100">
           <button type="submit" disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors">
-            <BookOpen size={14} />
-            {saving ? 'Creating…' : 'Create Book'}
+            className="px-6 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors">
+            {saving ? 'Saving…' : 'Save Changes'}
           </button>
-          <Link href="/books" className="px-4 py-2.5 text-slate-600 border border-slate-200 rounded-lg text-sm hover:bg-slate-50 transition-colors">
+          <Link href={`/books/${book.id}`} className="px-6 py-2.5 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
             Cancel
           </Link>
         </div>

@@ -60,3 +60,22 @@ export async function uploadDocumentAction(formData: FormData) {
   revalidatePath('/documents')
   redirect('/documents')
 }
+
+export async function deleteDocumentAction(id: string) {
+  if (isDemoMode) { revalidatePath('/documents'); return {} }
+  const supabase = await createClient()
+  const { error } = await supabase.from('documents').delete().eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/documents')
+  return {}
+}
+
+export async function updateDocumentStatusAction(id: string, status: string) {
+  if (isDemoMode) { revalidatePath('/documents'); return {} }
+  const supabase = await createClient()
+  const { error } = await supabase.from('documents').update({ status }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath('/documents')
+  revalidatePath(`/documents/${id}`)
+  return {}
+}

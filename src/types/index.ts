@@ -293,19 +293,21 @@ export interface Broker {
 export type DocumentFolder = 'Legal' | 'Survey' | 'Photos' | 'Owner Docs' | 'Agreements'
 export type DocumentStatus = 'Pending' | 'Received' | 'Verified' | 'Issue' | 'Original Submitted'
 
-export interface Document {
+export interface PropertyDocument {
   id: string
   document_id: string
   property_id: string
   folder: DocumentFolder
   document_name: string
-  file_url?: string
+  file_url?: string | null
+  file_size?: number | null
   status: DocumentStatus
-  issue_notes?: string
-  uploaded_by?: string
+  issue_notes?: string | null
+  uploaded_by?: string | null
   upload_date: string
-  verified_by?: string
-  verified_date?: string
+  verified_by?: string | null
+  verified_date?: string | null
+  created_at: string
 }
 
 // ─── BOOK / FILE ─────────────────────────────────────────────────────────────
