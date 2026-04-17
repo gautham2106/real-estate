@@ -1,11 +1,21 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, MapPin } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import ShapePreview from '@/components/ui/ShapePreview'
 import type { Property } from '@/types'
+
+const GpsPickerMap = dynamic(() => import('@/components/map/GpsPickerMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg">
+      <div className="w-6 h-6 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+    </div>
+  ),
+})
 
 interface FormState {
   title: string; type: string; classification: string
@@ -101,6 +111,7 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
   )
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [showMapPicker, setShowMapPicker] = useState(false)
 
   const set = (field: keyof FormState | string, value: string | boolean) =>
     setForm((f) => ({ ...f, [field]: value }))
@@ -239,6 +250,31 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
             <Field label="GPS Longitude">
               <input name="gps_lng" className={inputCls} type="number" step="any" value={form.gps_lng} onChange={e => set('gps_lng', e.target.value)} placeholder="e.g. 78.0808" />
             </Field>
+            <div className="sm:col-span-2 lg:col-span-3">
+              <button
+                type="button"
+                onClick={() => setShowMapPicker(v => !v)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+              >
+                <MapPin size={14} />
+                {showMapPicker ? 'Hide Map' : (form.gps_lat && form.gps_lng ? 'Edit Pin on Map' : 'Drop Pin on Map')}
+              </button>
+              {form.gps_lat && form.gps_lng && !showMapPicker && (
+                <p className="mt-1.5 text-xs text-slate-500">
+                  📍 {parseFloat(form.gps_lat).toFixed(6)}, {parseFloat(form.gps_lng).toFixed(6)}
+                  <button type="button" onClick={() => { set('gps_lat', ''); set('gps_lng', '') }} className="ml-2 text-red-400 hover:text-red-600">✕ Clear</button>
+                </p>
+              )}
+              {showMapPicker && (
+                <div className="mt-2 rounded-xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 320 }}>
+                  <GpsPickerMap
+                    lat={form.gps_lat}
+                    lng={form.gps_lng}
+                    onPick={(lat, lng) => { set('gps_lat', String(lat)); set('gps_lng', String(lng)) }}
+                  />
+                </div>
+              )}
+            </div>
             <Field label="Facing">
               <select name="facing" className={selectCls} value={form.facing} onChange={e => set('facing', e.target.value)}>
                 <option value="N">North</option><option value="S">South</option><option value="E">East</option><option value="W">West</option>

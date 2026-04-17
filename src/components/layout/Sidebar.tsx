@@ -191,10 +191,10 @@ export default function Sidebar({ role = 'admin', mobileOpen = false, onClose }:
       {/* Mobile drawer */}
       <div className="lg:hidden">
         {mobileOpen && (
-          <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
+          <div className="fixed inset-0 bg-black/50 z-[1000]" onClick={onClose} />
         )}
         <div className={cn(
-          'fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300',
+          'fixed inset-y-0 left-0 z-[1001] w-72 transition-transform duration-300',
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         )}>
           {sidebarContent}
