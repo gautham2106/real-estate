@@ -201,6 +201,7 @@ export default function ReportsPage() {
         <div className="space-y-4">
           <h3 className="font-semibold text-slate-700">Monthly Performance — Last 6 Months</h3>
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -230,6 +231,7 @@ export default function ReportsPage() {
                 </tr>
               </tfoot>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -237,6 +239,7 @@ export default function ReportsPage() {
       {/* Deals Tab */}
       {activeTab === 'Deals' && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -258,12 +261,14 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* Brokers Tab */}
       {activeTab === 'Brokers' && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -287,6 +292,7 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
@@ -309,6 +315,7 @@ export default function ReportsPage() {
             <div className="px-5 py-4 border-b border-slate-100">
               <h3 className="font-semibold text-slate-700">Lead Source Breakdown</h3>
             </div>
+            <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
                 <tr>
@@ -335,6 +342,7 @@ export default function ReportsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
@@ -342,6 +350,7 @@ export default function ReportsPage() {
       {/* Properties Tab */}
       {activeTab === 'Properties' && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -364,12 +373,14 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* Commission Tab */}
       {activeTab === 'Commission' && (
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
@@ -391,6 +402,7 @@ export default function ReportsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

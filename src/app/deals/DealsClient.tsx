@@ -113,6 +113,34 @@ export default function DealsClient({ deals, propertyMap, brokerMap }: DealsClie
     },
   ]
 
+  const mobileCard = (row: Deal) => (
+    <Link href={`/deals/${row.id}`} className="block px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div>
+          <span className="font-mono text-xs text-blue-600">{row.deal_id}</span>
+          <p className="font-semibold text-slate-800 text-sm mt-0.5">{row.deal_title}</p>
+        </div>
+        <Badge status={row.status} />
+      </div>
+      <div className="flex items-center justify-between text-xs mt-1">
+        <div className="flex items-center gap-2 text-slate-500">
+          <span className="font-mono text-blue-700">{propertyMap[row.property_id] ?? '—'}</span>
+          {row.buyer_broker_id && brokerMap[row.buyer_broker_id] && (
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full truncate max-w-[100px]">
+              {brokerMap[row.buyer_broker_id]}
+            </span>
+          )}
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-800">{formatCurrency(row.deal_value)}</p>
+          {(row.your_net ?? 0) > 0 && (
+            <p className="text-green-700 font-medium">Net: {formatCurrency(row.your_net ?? 0)}</p>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
+
   return (
     <div className="space-y-6 max-w-screen-xl">
       <PageHeader
@@ -189,6 +217,7 @@ export default function DealsClient({ deals, propertyMap, brokerMap }: DealsClie
         columns={columns}
         searchKeys={['deal_id', 'deal_title'] as (keyof Deal)[]}
         emptyMessage="No deals found for the selected status."
+        mobileCard={mobileCard}
       />
     </div>
   )

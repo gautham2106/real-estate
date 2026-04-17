@@ -41,12 +41,36 @@ export default function PropertiesTable({ properties, isAdmin, brokerEntries }: 
     },
   ]
 
+  const mobileCard = (row: Property) => (
+    <Link href={`/properties/${row.id}`} className="block px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div>
+          <span className="font-mono text-xs font-bold text-blue-700">{row.land_code}</span>
+          <p className="font-semibold text-slate-800 text-sm mt-0.5">{row.title}</p>
+        </div>
+        <Badge status={row.status} />
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2 text-slate-500">
+          <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{row.type}</span>
+          <span>{row.area} {row.area_unit}</span>
+          {row.district && <span>📍 {row.district}</span>}
+        </div>
+        <span className="font-bold text-slate-800">{formatCurrency(row.price)}</span>
+      </div>
+      {isAdmin && row.owner_name && (
+        <p className="text-xs text-slate-400 mt-1">Owner: {row.owner_name}{row.owner_phone ? ` · ${row.owner_phone}` : ''}</p>
+      )}
+    </Link>
+  )
+
   return (
     <DataTable<Record<string, unknown>>
       data={properties as unknown as Record<string, unknown>[]}
       columns={columns as Parameters<typeof DataTable>[0]['columns']}
       searchKeys={['land_code', 'title', 'district', 'type'] as never[]}
       emptyMessage="No properties found"
+      mobileCard={mobileCard as unknown as (row: Record<string, unknown>) => React.ReactNode}
     />
   )
 }

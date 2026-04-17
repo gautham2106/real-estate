@@ -201,6 +201,13 @@ export async function getDeals(filters?: { status?: string }): Promise<Deal[]> {
   return (data ?? []) as Deal[]
 }
 
+export async function getDealById(id: string): Promise<Deal | null> {
+  if (isDemoMode) return mockDeals.find(d => d.id === id) ?? null
+  const supabase = await createClient()
+  const { data } = await supabase.from('deals').select('*').eq('id', id).single()
+  return data as Deal | null
+}
+
 export async function getDealStats() {
   if (isDemoMode) {
     const thisMonth = new Date().toISOString().slice(0, 7)

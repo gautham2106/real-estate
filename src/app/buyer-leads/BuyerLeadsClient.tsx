@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Phone } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/ui/DataTable'
@@ -50,6 +50,12 @@ const columns = [
   },
 ]
 
+const urgencyColor: Record<string, string> = {
+  'Immediate': 'text-red-600',
+  '3 months': 'text-yellow-600',
+  '6 months': 'text-slate-500',
+}
+
 interface Props {
   leads: BuyerLead[]
   total: number
@@ -60,6 +66,46 @@ export default function BuyerLeadsClient({ leads, total, isBroker }: Props) {
   const [activeTab, setActiveTab] = useState<BuyerLeadStatus | 'All'>('All')
 
   const filtered = activeTab === 'All' ? leads : leads.filter(l => l.status === activeTab)
+
+  const mobileCard = (row: BuyerLead) => (
+    <Link href={`/buyer-leads/${row.id}`} className="block px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div>
+          <span className="font-semibold text-slate-800 text-sm">{row.name}</span>
+          <span className="ml-2 font-mono text-xs text-blue-600">{row.lead_id}</span>
+        </div>
+        <Badge status={row.status} />
+      </div>
+      <div className="flex items-center gap-3 text-xs text-slate-500 mb-1.5">
+        {row.phone && (
+          <span className="flex items-center gap-1"><Phone size={11} />{row.phone}</span>
+        )}
+        {row.preferred_location && <span>📍 {row.preferred_location}</span>}
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          {(row.budget_min || row.budget_max) && (
+            <span className="font-semibold text-slate-700">
+              {row.budget_min && row.budget_max
+                ? `${formatCurrency(row.budget_min)} – ${formatCurrency(row.budget_max)}`
+                : formatCurrency(row.budget_max ?? 0)}
+            </span>
+          )}
+          {row.property_type_needed && (
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{row.property_type_needed}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {row.urgency && (
+            <span className={`font-medium ${urgencyColor[row.urgency] ?? 'text-slate-500'}`}>{row.urgency}</span>
+          )}
+          {row.follow_up_date && (
+            <span className="text-slate-400">📅 {row.follow_up_date}</span>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
 
   return (
     <div className="space-y-6 max-w-screen-xl">
@@ -98,6 +144,7 @@ export default function BuyerLeadsClient({ leads, total, isBroker }: Props) {
         columns={columns as Parameters<typeof DataTable>[0]['columns']}
         searchKeys={['lead_id', 'name', 'phone', 'preferred_location'] as never[]}
         emptyMessage="No buyer leads found"
+        mobileCard={mobileCard as unknown as (row: Record<string, unknown>) => React.ReactNode}
       />
     </div>
   )

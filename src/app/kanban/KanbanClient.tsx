@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -20,7 +20,8 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Kanban, Filter } from 'lucide-react'
+import { Kanban, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import { formatCurrency, cn } from '@/lib/utils'
 import type { Deal, DealStatus } from '@/types'
@@ -235,6 +236,8 @@ export default function KanbanClient({
   const [brokerFilter, setBrokerFilter] = useState('')
   const [minValue, setMinValue] = useState('')
   const [maxValue, setMaxValue] = useState('')
+  const [mobileColIdx, setMobileColIdx] = useState(0)
+  const tabsRef = useRef<HTMLDivElement>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -365,41 +368,126 @@ export default function KanbanClient({
         )}
       </div>
 
-      {/* Kanban Board */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-3 min-w-max">
-            {COLUMNS.map((col) => (
-              <KanbanColumn
+      {/* Mobile view — status tabs + card list */}
+      <div className="md:hidden space-y-3">
+        {/* Tab scroll bar */}
+        <div className="relative">
+          <div ref={tabsRef} className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+            {COLUMNS.map((col, i) => (
+              <button
                 key={col.status}
-                col={col}
-                cards={dealsByStatus[col.status] ?? []}
-                propertyMap={propertyMap}
-                brokerMap={brokerMap}
-                buyerMap={buyerMap}
-              />
+                onClick={() => setMobileColIdx(i)}
+                className={cn(
+                  'shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap',
+                  mobileColIdx === i
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white border border-slate-200 text-slate-600',
+                )}
+              >
+                {col.status}
+                <span className={cn('ml-1', mobileColIdx === i ? 'opacity-80' : 'text-slate-400')}>
+                  ({(dealsByStatus[COLUMNS[i].status] ?? []).length})
+                </span>
+              </button>
             ))}
           </div>
         </div>
 
-        <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
-          {activeDeal ? (
-            <div className="w-64 cursor-grabbing rotate-2 shadow-2xl">
-              <DealCard
-                deal={activeDeal}
-                propertyMap={propertyMap}
-                brokerMap={brokerMap}
-                buyerMap={buyerMap}
-              />
+        {/* Navigation arrows */}
+        <div className="flex items-center justify-between text-xs text-slate-500">
+          <button
+            onClick={() => setMobileColIdx(i => Math.max(0, i - 1))}
+            disabled={mobileColIdx === 0}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 disabled:opacity-30"
+          >
+            <ChevronLeft size={13} /> Prev
+          </button>
+          <span className="font-medium text-slate-700">{COLUMNS[mobileColIdx].status}</span>
+          <button
+            onClick={() => setMobileColIdx(i => Math.min(COLUMNS.length - 1, i + 1))}
+            disabled={mobileColIdx === COLUMNS.length - 1}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-slate-200 disabled:opacity-30"
+          >
+            Next <ChevronRight size={13} />
+          </button>
+        </div>
+
+        {/* Cards for selected column */}
+        <div className="space-y-2">
+          {(dealsByStatus[COLUMNS[mobileColIdx].status] ?? []).length === 0 ? (
+            <div className="bg-white rounded-xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-400 text-sm">
+              No deals in this stage
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          ) : (
+            (dealsByStatus[COLUMNS[mobileColIdx].status] ?? []).map(deal => {
+              const prop = propertyMap[deal.property_id]
+              const brokerName = deal.buyer_broker_id ? brokerMap[deal.buyer_broker_id] ?? deal.buyer_broker_id : '—'
+              const buyerName = buyerMap[deal.buyer_lead_id] ?? 'Unknown'
+              const days = daysSince(deal.created_at)
+              return (
+                <Link
+                  key={deal.id}
+                  href={`/deals/${deal.id}`}
+                  className="block bg-white rounded-xl border border-slate-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="font-bold text-xs text-blue-700 font-mono">{prop?.land_code ?? deal.property_id}</span>
+                    <span className="text-xs text-slate-400">{deal.deal_id}</span>
+                  </div>
+                  <p className="text-sm font-medium text-slate-800 mb-1">{buyerName}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold text-slate-900">{formatCurrency(deal.deal_value)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full max-w-[100px] truncate">{brokerName}</span>
+                      <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded', days > 14 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500')}>
+                        {days}d
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              )
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Kanban Board — desktop only */}
+      <div className="hidden md:block">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-3 min-w-max">
+              {COLUMNS.map((col) => (
+                <KanbanColumn
+                  key={col.status}
+                  col={col}
+                  cards={dealsByStatus[col.status] ?? []}
+                  propertyMap={propertyMap}
+                  brokerMap={brokerMap}
+                  buyerMap={buyerMap}
+                />
+              ))}
+            </div>
+          </div>
+
+          <DragOverlay dropAnimation={{ duration: 150, easing: 'ease' }}>
+            {activeDeal ? (
+              <div className="w-64 cursor-grabbing rotate-2 shadow-2xl">
+                <DealCard
+                  deal={activeDeal}
+                  propertyMap={propertyMap}
+                  brokerMap={brokerMap}
+                  buyerMap={buyerMap}
+                />
+              </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      </div>
     </div>
   )
 }

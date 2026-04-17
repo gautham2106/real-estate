@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { PlusCircle } from 'lucide-react'
+import { PlusCircle, Phone } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/ui/DataTable'
@@ -49,6 +49,40 @@ export default function SellerLeadsClient({ leads, total, isBroker }: Props) {
 
   const filtered = activeTab === 'All' ? leads : leads.filter(l => l.status === activeTab)
 
+  const mobileCard = (row: SellerLead) => (
+    <Link href={`/seller-leads/${row.id}`} className="block px-4 py-3 hover:bg-slate-50 active:bg-slate-100 transition-colors">
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div>
+          <span className="font-semibold text-slate-800 text-sm">{row.owner_name}</span>
+          <span className="ml-2 font-mono text-xs text-blue-600">{row.lead_id}</span>
+        </div>
+        <Badge status={row.status} />
+      </div>
+      <div className="flex items-center gap-3 text-xs text-slate-500 mb-1.5">
+        {row.phone && (
+          <span className="flex items-center gap-1"><Phone size={11} />{row.phone}</span>
+        )}
+        {row.property_location && <span>📍 {row.property_location}</span>}
+      </div>
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center gap-2">
+          {row.asking_price && (
+            <span className="font-semibold text-slate-700">{formatCurrency(row.asking_price)}</span>
+          )}
+          {row.property_type && (
+            <span className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{row.property_type}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {row.source && <span className="text-slate-400">{row.source}</span>}
+          {row.follow_up_date && (
+            <span className="text-slate-400">📅 {row.follow_up_date}</span>
+          )}
+        </div>
+      </div>
+    </Link>
+  )
+
   return (
     <div className="space-y-6 max-w-screen-xl">
       <PageHeader
@@ -86,6 +120,7 @@ export default function SellerLeadsClient({ leads, total, isBroker }: Props) {
         columns={columns as Parameters<typeof DataTable>[0]['columns']}
         searchKeys={['lead_id', 'owner_name', 'phone', 'property_location'] as never[]}
         emptyMessage="No seller leads found"
+        mobileCard={mobileCard as unknown as (row: Record<string, unknown>) => React.ReactNode}
       />
     </div>
   )
