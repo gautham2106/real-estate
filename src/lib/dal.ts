@@ -393,3 +393,15 @@ export async function getRecentActivity(limit = 6): Promise<RecentActivity[]> {
     timestamp: new Date(a.created_at).toLocaleDateString('en-IN'),
   }))
 }
+
+// ─── ACTIVITY LOG ─────────────────────────────────────────
+
+export async function logActivity(type: string, description: string, actor = 'System') {
+  if (isDemoMode) return
+  try {
+    const supabase = await createClient()
+    await supabase.from('activity_log').insert({ type, description, actor })
+  } catch {
+    // non-critical, never throw
+  }
+}

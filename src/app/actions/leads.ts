@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/dal'
+import { isDemoMode, logActivity } from '@/lib/dal'
 
 const buyerLeadSchema = z.object({
   name: z.string().min(1),
@@ -53,8 +53,33 @@ export async function createBuyerLeadAction(formData: FormData) {
   const lead_id = await generateLeadId(supabase, 'buyer_leads', 'BL')
   const { error } = await supabase.from('buyer_leads').insert({ ...parsed.data, lead_id, added_at: new Date().toISOString() })
   if (error) return { error: error.message }
+  await logActivity('Buyer Lead Created', `Added buyer lead ${lead_id}`)
   revalidatePath('/buyer-leads')
   redirect('/buyer-leads')
+}
+
+export async function updateBuyerLeadAction(id: string, formData: FormData) {
+  if (isDemoMode) { revalidatePath('/buyer-leads'); return { success: true } }
+  const raw = Object.fromEntries(formData.entries())
+  const parsed = buyerLeadSchema.partial().safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const supabase = await createClient()
+  const { error } = await supabase.from('buyer_leads').update(parsed.data).eq('id', id)
+  if (error) return { error: error.message }
+  await logActivity('Buyer Lead Updated', `Updated buyer lead ${id}`)
+  revalidatePath('/buyer-leads')
+  revalidatePath(`/buyer-leads/${id}`)
+  return { success: true }
+}
+
+export async function deleteBuyerLeadAction(id: string) {
+  if (isDemoMode) { revalidatePath('/buyer-leads'); return {} }
+  const supabase = await createClient()
+  const { error } = await supabase.from('buyer_leads').delete().eq('id', id)
+  if (error) return { error: error.message }
+  await logActivity('Buyer Lead Deleted', `Deleted buyer lead ${id}`)
+  revalidatePath('/buyer-leads')
+  return {}
 }
 
 export async function createSellerLeadAction(formData: FormData) {
@@ -66,8 +91,70 @@ export async function createSellerLeadAction(formData: FormData) {
   const lead_id = await generateLeadId(supabase, 'seller_leads', 'SL')
   const { error } = await supabase.from('seller_leads').insert({ ...parsed.data, lead_id, added_at: new Date().toISOString() })
   if (error) return { error: error.message }
+  await logActivity('Seller Lead Created', `Added seller lead ${lead_id}`)
   revalidatePath('/seller-leads')
   redirect('/seller-leads')
+}
+
+export async function updateSellerLeadAction(id: string, formData: FormData) {
+  if (isDemoMode) { revalidatePath('/seller-leads'); return { success: true } }
+  const raw = Object.fromEntries(formData.entries())
+  const parsed = sellerLeadSchema.partial().safeParse(raw)
+  if (!parsed.success) return { error: parsed.error.issues[0].message }
+  const supabase = await createClient()
+  const { error } = await supabase.from('seller_leads').update(parsed.data).eq('id', id)
+  if (error) return { error: error.message }
+  await logActivity('Seller Lead Updated', `Updated seller lead ${id}`)
+  revalidatePath('/seller-leads')
+  revalidatePath(`/seller-leads/${id}`)
+  return { success: true }
+}
+
+export async function deleteSellerLeadAction(id: string) {
+  if (isDemoMode) { revalidatePath('/seller-leads'); return {} }
+  const supabase = await createClient()
+  const { error } = await supabase.from('seller_leads').delete().eq('id', id)
+  if (error) return { error: error.message }
+  await logActivity('Seller Lead Deleted', `Deleted seller lead ${id}`)
+  revalidatePath('/seller-leads')
+  return {}
+}
+
+export async function convertSellerLeadToPropertyAction(id: string) {
+  if (isDemoMode) return { propertyId: 'mock-property-id' }
+  const supabase = await createClient()
+  const { data: lead } = await supabase.from('seller_leads').select('*').eq('id', id).single()
+  if (!lead) return { error: 'Seller lead not found' }
+
+  const { count } = await supabase.from('properties').select('*', { count: 'exact', head: true })
+  const seq = String((count ?? 0) + 1).padStart(3, '0')
+  const land_code = `BLU-${new Date().getFullYear()}-${seq}`
+
+  const { data: property, error } = await supabase.from('properties').insert({
+    title: `${lead.property_type ?? 'Property'} at ${lead.property_location}`,
+    type: lead.property_type ?? 'Plot',
+    classification: 'Residential',
+    area: 0,
+    area_unit: 'Sqft',
+    price: lead.asking_price ?? 0,
+    address: lead.property_location,
+    owner_name: lead.owner_name,
+    owner_phone: lead.phone,
+    owner_whatsapp: lead.whatsapp ?? null,
+    land_code,
+    status: 'Available',
+  }).select('id').single()
+
+  if (error) return { error: error.message }
+
+  await supabase.from('seller_leads')
+    .update({ converted_property_id: property.id, status: 'Listed' })
+    .eq('id', id)
+
+  await logActivity('Seller Lead Converted', `${lead.lead_id} converted to property ${land_code}`)
+  revalidatePath('/seller-leads')
+  revalidatePath('/properties')
+  return { propertyId: property.id as string }
 }
 
 export async function updateLeadStatusAction(type: 'seller' | 'buyer', id: string, status: string) {

@@ -9,6 +9,8 @@ import {
 import { mockBrokers, mockBuyerLeads } from '@/lib/mock-data'
 import { formatCurrency, daysUntil } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
+import DeleteButton from '@/components/ui/DeleteButton'
+import { deletePropertyAction } from '@/app/actions/properties'
 import type { SiteVisit, Deal } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
@@ -188,7 +190,7 @@ export default async function PropertyDetailPage(props: {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {mapsUrl && (
               <a
                 href={mapsUrl}
@@ -198,6 +200,18 @@ export default async function PropertyDetailPage(props: {
               >
                 📍 Get Directions
               </a>
+            )}
+            <Link
+              href={`/properties/${id}/edit`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              Edit
+            </Link>
+            {isAdmin && (
+              <DeleteButton
+                onDelete={deletePropertyAction.bind(null, id)}
+                redirectTo="/properties"
+              />
             )}
           </div>
         </div>

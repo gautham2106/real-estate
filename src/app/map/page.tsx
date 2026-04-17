@@ -1,10 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { MapPin, MessageCircle, Share2, Filter, Navigation } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import { MessageCircle, Share2, Filter } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { mockProperties } from '@/lib/mock-data'
-import type { PropertyType, PropertyStatus } from '@/types'
+import type { PropertyType } from '@/types'
+
+const PropertyMap = dynamic(() => import('@/components/map/PropertyMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-xl">
+      <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+    </div>
+  ),
+})
 
 const statusDot: Record<string, string> = {
   'Available': 'bg-green-500',
@@ -19,7 +29,7 @@ const ALL_TYPES: PropertyType[] = ['Plot', 'House', 'Farm', 'Commercial']
 
 export default function PublicMapPage() {
   const [typeFilter, setTypeFilter] = useState<PropertyType | 'All'>('All')
-  const [priceMax, setPriceMax] = useState(10000000)
+  const [priceMax, setPriceMax] = useState(99999999)
   const [selected, setSelected] = useState<string | null>(null)
 
   const filtered = mockProperties.filter(p => {
@@ -40,13 +50,15 @@ export default function PublicMapPage() {
   return (
     <div className="space-y-4 max-w-screen-xl">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h2 className="text-xl font-bold text-slate-800">Public Property Map</h2>
-          <p className="text-sm text-slate-500">{filtered.length} properties available · Shareable public view</p>
+          <p className="text-sm text-slate-500">{filtered.length} properties · OpenStreetMap</p>
         </div>
-        <button onClick={handleShare}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+        <button
+          onClick={handleShare}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+        >
           <Share2 size={14} />
           Share Map
         </button>
@@ -54,21 +66,27 @@ export default function PublicMapPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap bg-white rounded-xl border border-slate-200 p-3">
-        <Filter size={15} className="text-slate-400" />
-        <div className="flex gap-1.5">
+        <Filter size={15} className="text-slate-400 shrink-0" />
+        <div className="flex gap-1.5 flex-wrap">
           {(['All', ...ALL_TYPES] as const).map(t => (
-            <button key={t} onClick={() => setTypeFilter(t as typeof typeFilter)}
+            <button
+              key={t}
+              onClick={() => setTypeFilter(t as typeof typeFilter)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 typeFilter === t ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}>
+              }`}
+            >
               {t}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex items-center gap-2 ml-auto">
           <span className="text-xs text-slate-500">Max price:</span>
-          <select value={priceMax} onChange={e => setPriceMax(Number(e.target.value))}
-            className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select
+            value={priceMax}
+            onChange={e => setPriceMax(Number(e.target.value))}
+            className="border border-slate-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             <option value={1000000}>Under ₹10L</option>
             <option value={2500000}>Under ₹25L</option>
             <option value={5000000}>Under ₹50L</option>
@@ -79,50 +97,22 @@ export default function PublicMapPage() {
       </div>
 
       <div className="grid lg:grid-cols-5 gap-4">
-        {/* Map Placeholder */}
-        <div className="lg:col-span-3 bg-slate-100 rounded-xl border border-slate-200 overflow-hidden" style={{ minHeight: '480px' }}>
-          <div className="h-full flex flex-col items-center justify-center p-8 text-center relative">
-            <div className="absolute inset-0 opacity-10"
-              style={{
-                backgroundImage: 'radial-gradient(circle, #3b82f6 1px, transparent 1px)',
-                backgroundSize: '30px 30px',
-              }} />
-            <MapPin size={48} className="text-blue-400 mb-4" />
-            <h3 className="font-bold text-slate-700 text-lg mb-1">Google Maps Integration</h3>
-            <p className="text-sm text-slate-500 max-w-xs">
-              Set <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> to enable the live map with property pins.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-2">
-              {filtered.map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelected(p.id === selected ? null : p.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                    selected === p.id ? 'bg-blue-600 text-white border-blue-600 shadow-md' : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300'
-                  }`}
-                >
-                  <span className={`w-2 h-2 rounded-full ${statusDot[p.status] ?? 'bg-gray-400'}`} />
-                  {p.land_code}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center gap-4 text-xs text-slate-500">
-              {[
-                { color: 'bg-green-500', label: 'Available' },
-                { color: 'bg-orange-400', label: 'Negotiating' },
-                { color: 'bg-blue-600', label: 'Sold' },
-              ].map(l => (
-                <div key={l.label} className="flex items-center gap-1.5">
-                  <span className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
-                  {l.label}
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Map */}
+        <div className="lg:col-span-3 rounded-xl border border-slate-200 overflow-hidden" style={{ minHeight: '480px' }}>
+          <PropertyMap
+            properties={filtered}
+            selected={selected}
+            onSelect={setSelected}
+          />
         </div>
 
         {/* Property List Panel */}
         <div className="lg:col-span-2 space-y-3 overflow-y-auto" style={{ maxHeight: '540px' }}>
+          {filtered.length === 0 && (
+            <div className="bg-white rounded-xl border border-slate-200 px-6 py-10 text-center text-slate-400 text-sm">
+              No properties match this filter
+            </div>
+          )}
           {filtered.map(p => (
             <div
               key={p.id}
@@ -142,10 +132,10 @@ export default function PublicMapPage() {
               <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-500 mb-3">
                 <div><span className="text-slate-400">Area:</span> {p.area} {p.area_unit}</div>
                 <div><span className="text-slate-400">Price:</span> <span className="font-semibold text-slate-800">{formatCurrency(p.price)}</span></div>
-                <div><span className="text-slate-400">Location:</span> {p.village}, {p.district}</div>
+                {p.village && <div><span className="text-slate-400">Location:</span> {p.village}{p.district ? `, ${p.district}` : ''}</div>}
                 {p.facing && <div><span className="text-slate-400">Facing:</span> {p.facing}</div>}
               </div>
-              <div className="flex gap-1.5 text-xs">
+              <div className="flex gap-1.5 text-xs mb-3 flex-wrap">
                 {p.road_access && p.road_access !== 'No' && (
                   <span className="px-2 py-0.5 bg-green-50 text-green-700 rounded-full border border-green-200">Road ✓</span>
                 )}
@@ -155,8 +145,11 @@ export default function PublicMapPage() {
                 {p.electricity && (
                   <span className="px-2 py-0.5 bg-yellow-50 text-yellow-700 rounded-full border border-yellow-200">Power ✓</span>
                 )}
+                {p.gps_lat && p.gps_lng && (
+                  <span className="px-2 py-0.5 bg-slate-50 text-slate-600 rounded-full border border-slate-200">📍 GPS</span>
+                )}
               </div>
-              <div className="mt-3 flex gap-2">
+              <div className="flex gap-2">
                 {p.gps_lat && p.gps_lng && (
                   <a
                     href={`https://www.google.com/maps?q=${p.gps_lat},${p.gps_lng}`}
@@ -165,12 +158,11 @@ export default function PublicMapPage() {
                     onClick={e => e.stopPropagation()}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
                   >
-                    <Navigation size={12} />
-                    Get Directions
+                    📍 Directions
                   </a>
                 )}
                 <a
-                  href={`https://wa.me/919876543210?text=Hi, I'm interested in property ${p.land_code} — ${p.title}`}
+                  href={`https://wa.me/919876543210?text=Hi, I'm interested in ${p.land_code} — ${p.title}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={e => e.stopPropagation()}
@@ -180,14 +172,39 @@ export default function PublicMapPage() {
                   WhatsApp
                 </a>
               </div>
+
+              {/* Selected detail panel */}
+              {selectedProp?.id === p.id && (
+                <div className="mt-3 pt-3 border-t border-slate-100 space-y-1">
+                  {p.survey_number && <p className="text-xs text-slate-500">Survey: {p.survey_number}</p>}
+                  {p.legal_status && <p className="text-xs text-slate-500">Legal: <span className="font-medium text-slate-700">{p.legal_status}</span></p>}
+                  {p.dtcp_approved && <p className="text-xs text-slate-500">DTCP: <span className="font-medium text-slate-700">{p.dtcp_approved}</span></p>}
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Branding */}
-      <div className="text-center py-3 text-xs text-slate-400">
-        Powered by <span className="font-bold text-blue-600">Bluesquare Real Estate</span> · All listings subject to availability
+      {/* Legend */}
+      <div className="flex items-center justify-center gap-6 py-2 text-xs text-slate-500 flex-wrap">
+        {[
+          { color: 'bg-green-500', label: 'Available' },
+          { color: 'bg-orange-400', label: 'Negotiating' },
+          { color: 'bg-blue-400', label: 'MOU Signed' },
+          { color: 'bg-blue-600', label: 'Sold' },
+          { color: 'bg-gray-400', label: 'On Hold' },
+        ].map(l => (
+          <div key={l.label} className="flex items-center gap-1.5">
+            <span className={`w-2.5 h-2.5 rounded-full ${l.color}`} />
+            {l.label}
+          </div>
+        ))}
+      </div>
+
+      <div className="text-center py-2 text-xs text-slate-400">
+        Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a> contributors ·
+        Powered by <span className="font-bold text-blue-600">Bluesquare Real Estate</span>
       </div>
     </div>
   )

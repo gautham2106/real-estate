@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/dal'
+import { isDemoMode, logActivity } from '@/lib/dal'
 
 const propertySchema = z.object({
   title: z.string().min(2),
@@ -58,6 +58,7 @@ export async function createPropertyAction(formData: FormData) {
   const land_code = await generateLandCode(supabase)
   const { error } = await supabase.from('properties').insert({ ...parsed.data, land_code })
   if (error) return { error: error.message }
+  await logActivity('Property Created', `Added property ${land_code}`)
   revalidatePath('/properties')
   redirect('/properties')
 }
@@ -80,8 +81,20 @@ export async function updatePropertyAction(id: string, formData: FormData) {
   const supabase = await createClient()
   const { error } = await supabase.from('properties').update(parsed.data).eq('id', id)
   if (error) return { error: error.message }
+  await logActivity('Property Updated', `Updated property ${id}`)
   revalidatePath('/properties')
+  revalidatePath(`/properties/${id}`)
   return { success: true }
+}
+
+export async function deletePropertyAction(id: string) {
+  if (isDemoMode) { revalidatePath('/properties'); return {} }
+  const supabase = await createClient()
+  const { error } = await supabase.from('properties').delete().eq('id', id)
+  if (error) return { error: error.message }
+  await logActivity('Property Deleted', `Deleted property ${id}`)
+  revalidatePath('/properties')
+  return {}
 }
 
 async function generateLandCode(supabase: Awaited<ReturnType<typeof createClient>>) {

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import ShapePreview from '@/components/ui/ShapePreview'
+import type { Property } from '@/types'
 
 interface FormState {
   title: string; type: string; classification: string
@@ -16,9 +17,10 @@ interface FormState {
   owner_name: string; owner_phone: string; owner_whatsapp: string; owner_aadhaar: string; owner_pan: string
   exclusivity_start: string; exclusivity_end: string
   assigned_broker: string; property_status: string; internal_notes: string
+  side_a: string; side_b: string; side_c: string; side_d: string
 }
 
-const initialForm: FormState = {
+const defaultForm: FormState = {
   title: '', type: 'Plot', classification: 'Residential',
   area: '', area_unit: 'Sqft', price: '',
   address: '', landmark: '', village: '', taluk: '', district: '',
@@ -28,6 +30,48 @@ const initialForm: FormState = {
   owner_name: '', owner_phone: '', owner_whatsapp: '', owner_aadhaar: '', owner_pan: '',
   exclusivity_start: '', exclusivity_end: '',
   assigned_broker: '', property_status: 'Available', internal_notes: '',
+  side_a: '', side_b: '', side_c: '', side_d: '',
+}
+
+function fromProperty(p: Property): FormState {
+  return {
+    title: p.title,
+    type: p.type,
+    classification: p.classification,
+    area: String(p.area),
+    area_unit: p.area_unit,
+    price: String(p.price),
+    address: p.address ?? '',
+    landmark: '',
+    village: p.village ?? '',
+    taluk: p.taluk ?? '',
+    district: p.district ?? '',
+    gps_lat: p.gps_lat ? String(p.gps_lat) : '',
+    gps_lng: p.gps_lng ? String(p.gps_lng) : '',
+    facing: p.facing ?? 'N',
+    road_access: !!(p.road_access && p.road_access !== 'No'),
+    water: !!(p.water && p.water !== 'No'),
+    electricity: p.electricity ?? false,
+    survey_number: p.survey_number ?? '',
+    patta_number: p.patta_number ?? '',
+    dtcp_approved: p.dtcp_approved ?? 'No',
+    rera: p.rera_applicable ?? false,
+    legal_status: p.legal_status ?? 'Clear',
+    owner_name: p.owner_name ?? '',
+    owner_phone: p.owner_phone ?? '',
+    owner_whatsapp: p.owner_whatsapp ?? '',
+    owner_aadhaar: p.owner_aadhaar ?? '',
+    owner_pan: p.owner_pan ?? '',
+    exclusivity_start: p.exclusivity_start ?? '',
+    exclusivity_end: p.exclusivity_end ?? '',
+    assigned_broker: p.assigned_broker_id ?? '',
+    property_status: p.status,
+    internal_notes: p.internal_notes ?? '',
+    side_a: p.side_a ? String(p.side_a) : '',
+    side_b: p.side_b ? String(p.side_b) : '',
+    side_c: p.side_c ? String(p.side_c) : '',
+    side_d: p.side_d ? String(p.side_d) : '',
+  }
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -44,10 +88,17 @@ function Field({ label, required, children }: { label: string; required?: boolea
 const inputCls = 'border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
 const selectCls = inputCls + ' appearance-none'
 
-interface Props { isAdmin: boolean }
+interface Props {
+  isAdmin: boolean
+  initialData?: Property
+  propertyId?: string
+}
 
-export default function NewPropertyForm({ isAdmin }: Props) {
-  const [form, setForm] = useState<FormState>(initialForm)
+export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Props) {
+  const isEditMode = !!propertyId
+  const [form, setForm] = useState<FormState>(() =>
+    initialData ? fromProperty(initialData) : defaultForm
+  )
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -58,21 +109,39 @@ export default function NewPropertyForm({ isAdmin }: Props) {
     e.preventDefault()
     setServerError(null)
     const formData = new FormData(e.currentTarget)
-    const { createPropertyAction } = await import('@/app/actions/properties')
-    const result = await createPropertyAction(formData)
-    if (result?.error) setServerError(result.error)
-    else setSubmitted(true)
+    if (isEditMode) {
+      const { updatePropertyAction } = await import('@/app/actions/properties')
+      const result = await updatePropertyAction(propertyId!, formData)
+      if (result?.error) setServerError(result.error)
+      else setSubmitted(true)
+    } else {
+      const { createPropertyAction } = await import('@/app/actions/properties')
+      const result = await createPropertyAction(formData)
+      if (result?.error) setServerError(result.error)
+      else setSubmitted(true)
+    }
   }
 
   if (submitted) {
     return (
       <div className="max-w-screen-xl space-y-6">
         <div className="bg-green-50 border border-green-200 rounded-xl p-8 text-center">
-          <p className="text-green-700 font-semibold text-lg">Property saved successfully!</p>
-          <p className="text-green-600 text-sm mt-1">The new property has been added to the system.</p>
-          <Link href="/properties" className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-            Back to Properties
-          </Link>
+          <p className="text-green-700 font-semibold text-lg">
+            {isEditMode ? 'Property updated successfully!' : 'Property saved successfully!'}
+          </p>
+          <p className="text-green-600 text-sm mt-1">
+            {isEditMode ? 'Your changes have been saved.' : 'The new property has been added to the system.'}
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-3">
+            {isEditMode && (
+              <Link href={`/properties/${propertyId}`} className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                View Property
+              </Link>
+            )}
+            <Link href="/properties" className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              Back to Properties
+            </Link>
+          </div>
         </div>
       </div>
     )
@@ -81,11 +150,14 @@ export default function NewPropertyForm({ isAdmin }: Props) {
   return (
     <div className="space-y-6 max-w-screen-xl">
       <PageHeader
-        title="Add New Property"
-        subtitle="Fill in all details to list a new property"
+        title={isEditMode ? `Edit Property` : 'Add New Property'}
+        subtitle={isEditMode ? `Editing ${initialData?.land_code ?? ''}` : 'Fill in all details to list a new property'}
         action={
-          <Link href="/properties" className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
-            <ArrowLeft size={15} />Back to Properties
+          <Link
+            href={isEditMode ? `/properties/${propertyId}` : '/properties'}
+            className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+          >
+            <ArrowLeft size={15} />{isEditMode ? 'Back to Property' : 'Back to Properties'}
           </Link>
         }
       />
@@ -134,16 +206,16 @@ export default function NewPropertyForm({ isAdmin }: Props) {
                 {(['side_a','side_b','side_c','side_d'] as const).map((k, i) => (
                   <Field key={k} label={`Side ${['A (Top)','B (Right)','C (Bottom)','D (Left)'][i]}`}>
                     <input className={inputCls} type="number" name={k}
-                      value={(form as unknown as Record<string,string>)[k] ?? ''}
+                      value={form[k] as string}
                       onChange={e => set(k, e.target.value)} placeholder="in feet" />
                   </Field>
                 ))}
               </div>
               <ShapePreview
-                sideA={parseFloat((form as unknown as Record<string,string>).side_a ?? '0') || 0}
-                sideB={parseFloat((form as unknown as Record<string,string>).side_b ?? '0') || 0}
-                sideC={parseFloat((form as unknown as Record<string,string>).side_c ?? '0') || 0}
-                sideD={parseFloat((form as unknown as Record<string,string>).side_d ?? '0') || 0}
+                sideA={parseFloat(form.side_a) || 0}
+                sideB={parseFloat(form.side_b) || 0}
+                sideC={parseFloat(form.side_c) || 0}
+                sideD={parseFloat(form.side_d) || 0}
                 unit="ft"
               />
             </div>
@@ -181,7 +253,7 @@ export default function NewPropertyForm({ isAdmin }: Props) {
           <div className="flex flex-wrap gap-6">
             {(['road_access','water','electricity'] as const).map(f => (
               <label key={f} className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form[f] as boolean} onChange={e => set(f, e.target.checked)}
+                <input type="checkbox" name={f} checked={form[f] as boolean} onChange={e => set(f, e.target.checked)}
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 <span className="text-sm text-slate-700">{f === 'road_access' ? 'Road Access' : f.charAt(0).toUpperCase() + f.slice(1)}</span>
               </label>
@@ -207,7 +279,7 @@ export default function NewPropertyForm({ isAdmin }: Props) {
             </Field>
             <div className="flex items-center mt-5">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.rera} onChange={e => set('rera', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                <input type="checkbox" name="rera_applicable" checked={form.rera} onChange={e => set('rera', e.target.checked)} className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                 <span className="text-sm text-slate-700">RERA Applicable</span>
               </label>
             </div>
@@ -272,8 +344,10 @@ export default function NewPropertyForm({ isAdmin }: Props) {
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{serverError}</div>
         )}
         <div className="flex items-center justify-end gap-3 pb-4">
-          <Link href="/properties" className="px-5 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Cancel</Link>
-          <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">Save Property</button>
+          <Link href={isEditMode ? `/properties/${propertyId}` : '/properties'} className="px-5 py-2 border border-slate-200 text-slate-600 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">Cancel</Link>
+          <button type="submit" className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+            {isEditMode ? 'Save Changes' : 'Save Property'}
+          </button>
         </div>
       </form>
     </div>

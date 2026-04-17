@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { isDemoMode } from '@/lib/dal'
+import { isDemoMode, logActivity } from '@/lib/dal'
 
 function calcCommission(dealValue: number, buyerPct: number, sellerPct: number, hasReferral: boolean, hasTier1: boolean, hasTier2: boolean) {
   const totalCommission = dealValue * (buyerPct + sellerPct) / 100
@@ -76,9 +76,21 @@ export async function createDealAction(formData: FormData) {
     status: 'Created',
   })
   if (error) return { error: error.message }
+  await logActivity('Deal Created', `Created deal ${deal_id}`)
   revalidatePath('/deals')
   revalidatePath('/kanban')
   redirect('/deals')
+}
+
+export async function deleteDealAction(id: string) {
+  if (isDemoMode) { revalidatePath('/deals'); return {} }
+  const supabase = await createClient()
+  const { error } = await supabase.from('deals').delete().eq('id', id)
+  if (error) return { error: error.message }
+  await logActivity('Deal Deleted', `Deleted deal ${id}`)
+  revalidatePath('/deals')
+  revalidatePath('/kanban')
+  return {}
 }
 
 export async function updateDealStatusAction(id: string, status: string) {
@@ -86,6 +98,7 @@ export async function updateDealStatusAction(id: string, status: string) {
   const supabase = await createClient()
   const { error } = await supabase.from('deals').update({ status }).eq('id', id)
   if (error) return { error: error.message }
+  await logActivity('Deal Status Updated', `Deal ${id} moved to ${status}`)
   revalidatePath('/deals')
   revalidatePath('/kanban')
   return { success: true }

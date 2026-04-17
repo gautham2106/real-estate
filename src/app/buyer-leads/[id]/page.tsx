@@ -1,8 +1,11 @@
 import Link from 'next/link'
 import { getBuyerLeadById, getSiteVisitsByBuyer, getDeals } from '@/lib/dal'
+import { getUserRole } from '@/lib/auth'
 import { mockBrokers, mockProperties } from '@/lib/mock-data'
 import { formatCurrency } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
+import DeleteButton from '@/components/ui/DeleteButton'
+import { deleteBuyerLeadAction } from '@/app/actions/leads'
 import type { SiteVisit, Deal, NoteEntry } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
@@ -145,10 +148,11 @@ export default async function BuyerLeadDetailPage(props: {
 }) {
   const { id } = await props.params
 
-  const [lead, visits, allDeals] = await Promise.all([
+  const [lead, visits, allDeals, role] = await Promise.all([
     getBuyerLeadById(id),
     getSiteVisitsByBuyer(id),
     getDeals(),
+    getUserRole(),
   ])
 
   if (!lead) {
@@ -165,6 +169,7 @@ export default async function BuyerLeadDetailPage(props: {
 
   const deals = allDeals.filter(d => d.buyer_lead_id === id)
   const addedByBrokerName = getBrokerName(lead.added_by_broker_id)
+  const isAdmin = role === 'admin'
 
   return (
     <div className="max-w-screen-xl space-y-6">
@@ -190,7 +195,7 @@ export default async function BuyerLeadDetailPage(props: {
             <h1 className="text-2xl font-bold text-slate-800">{lead.name}</h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {lead.phone && (
               <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
                 📞 Call
@@ -205,6 +210,24 @@ export default async function BuyerLeadDetailPage(props: {
               >
                 WhatsApp
               </a>
+            )}
+            <Link
+              href={`/deals/new?buyer_id=${id}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+            >
+              + Create Deal
+            </Link>
+            <Link
+              href={`/buyer-leads/${id}/edit`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              Edit
+            </Link>
+            {isAdmin && (
+              <DeleteButton
+                onDelete={deleteBuyerLeadAction.bind(null, id)}
+                redirectTo="/buyer-leads"
+              />
             )}
           </div>
         </div>

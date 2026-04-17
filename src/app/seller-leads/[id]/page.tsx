@@ -1,8 +1,12 @@
 import Link from 'next/link'
 import { getSellerLeadById, getSiteVisitsByProperty } from '@/lib/dal'
+import { getUserRole } from '@/lib/auth'
 import { mockBrokers, mockBuyerLeads } from '@/lib/mock-data'
 import { formatCurrency } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
+import DeleteButton from '@/components/ui/DeleteButton'
+import ConvertToListingButton from '@/components/ui/ConvertToListingButton'
+import { deleteSellerLeadAction, convertSellerLeadToPropertyAction } from '@/app/actions/leads'
 import type { SiteVisit, NoteEntry } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
@@ -63,7 +67,7 @@ export default async function SellerLeadDetailPage(props: {
 }) {
   const { id } = await props.params
 
-  const lead = await getSellerLeadById(id)
+  const [lead, role] = await Promise.all([getSellerLeadById(id), getUserRole()])
 
   if (!lead) {
     return (
@@ -82,6 +86,7 @@ export default async function SellerLeadDetailPage(props: {
     : []
 
   const addedByBrokerName = getBrokerName(lead.added_by_broker_id)
+  const isAdmin = role === 'admin'
 
   return (
     <div className="max-w-screen-xl space-y-6">
@@ -104,7 +109,7 @@ export default async function SellerLeadDetailPage(props: {
             <p className="text-sm text-slate-500">{lead.property_location}</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <a href={`tel:${lead.phone}`} className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
               📞 Call
             </a>
@@ -117,6 +122,31 @@ export default async function SellerLeadDetailPage(props: {
               >
                 WhatsApp
               </a>
+            )}
+            {!lead.converted_property_id && isAdmin && (
+              <ConvertToListingButton
+                onConvert={convertSellerLeadToPropertyAction.bind(null, id)}
+              />
+            )}
+            {lead.converted_property_id && (
+              <Link
+                href={`/properties/${lead.converted_property_id}`}
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+              >
+                View Listing
+              </Link>
+            )}
+            <Link
+              href={`/seller-leads/${id}/edit`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              Edit
+            </Link>
+            {isAdmin && (
+              <DeleteButton
+                onDelete={deleteSellerLeadAction.bind(null, id)}
+                redirectTo="/seller-leads"
+              />
             )}
           </div>
         </div>
