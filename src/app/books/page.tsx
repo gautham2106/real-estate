@@ -2,39 +2,9 @@ import Link from 'next/link'
 import { BookOpen, PlusCircle, Package, TrendingUp, Archive } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import StatCard from '@/components/ui/StatCard'
-import Badge from '@/components/ui/Badge'
-import DataTable from '@/components/ui/DataTable'
 import { formatCurrency } from '@/lib/utils'
 import { getBooks } from '@/lib/dal'
-import type { Book } from '@/types'
-
-const columns = [
-  { key: 'book_id', header: 'Book ID', sortable: true,
-    render: (row: Book) => <span className="font-mono text-xs text-blue-700">{row.book_id}</span> },
-  { key: 'book_name', header: 'Name', sortable: true,
-    render: (row: Book) => <span className="font-medium text-slate-800">{row.book_name}</span> },
-  { key: 'description', header: 'Description',
-    render: (row: Book) => <span className="text-xs text-slate-500">{row.description ?? '—'}</span> },
-  { key: 'total_properties', header: 'Properties',
-    render: (row: Book) => (
-      <span className="text-center font-semibold text-slate-700">{row.total_properties ?? 0}</span>
-    ) },
-  { key: 'total_value', header: 'Total Value',
-    render: (row: Book) => (
-      <span className="font-semibold text-slate-800">{formatCurrency(row.total_value ?? 0)}</span>
-    ) },
-  { key: 'status', header: 'Status',
-    render: (row: Book) => <Badge status={row.status} /> },
-  { key: 'created_at', header: 'Created',
-    render: (row: Book) => new Date(row.created_at).toLocaleDateString('en-IN') },
-  { key: 'actions', header: '',
-    render: (row: Book) => (
-      <div className="flex items-center gap-2">
-        <button className="text-xs text-blue-600 hover:underline">View</button>
-        <button className="text-xs text-slate-400 hover:text-slate-600">Edit</button>
-      </div>
-    ) },
-]
+import BooksClient from './BooksClient'
 
 export default async function BooksPage() {
   const books = await getBooks()
@@ -66,12 +36,7 @@ export default async function BooksPage() {
         <StatCard title="Combined Value" value={formatCurrency(totalValue)} icon={Archive} iconColor="text-amber-600" iconBg="bg-amber-100" />
       </div>
 
-      <DataTable<Book>
-        data={books}
-        columns={columns}
-        searchKeys={['book_name', 'book_id', 'description']}
-        emptyMessage="No books found."
-      />
+      <BooksClient books={books} />
     </div>
   )
 }
