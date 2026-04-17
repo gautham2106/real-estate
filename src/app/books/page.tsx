@@ -1,5 +1,3 @@
-'use client'
-
 import Link from 'next/link'
 import { BookOpen, PlusCircle, Package, TrendingUp, Archive } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
@@ -7,35 +5,8 @@ import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/ui/DataTable'
 import { formatCurrency } from '@/lib/utils'
-import { mockBooks } from '@/lib/mock-data'
+import { getBooks } from '@/lib/dal'
 import type { Book } from '@/types'
-
-// Augment mock data with more entries for a richer demo
-const allBooks: Book[] = [
-  ...mockBooks,
-  {
-    id: '2', book_id: 'BK-002', book_name: 'Namakkal Commercial Portfolio',
-    description: 'Commercial plots and properties in Namakkal town',
-    property_ids: ['3'], total_properties: 1, total_value: 3200000,
-    status: 'Active', created_at: '2026-01-15T00:00:00Z',
-  },
-  {
-    id: '3', book_id: 'BK-003', book_name: 'Salem Road Farm Lands',
-    description: 'Agricultural land along Salem highway corridor',
-    property_ids: ['2'], total_properties: 1, total_value: 4500000,
-    status: 'Open', created_at: '2026-02-01T00:00:00Z',
-  },
-  {
-    id: '4', book_id: 'BK-004', book_name: 'Q1 2025 Closed Properties',
-    description: 'Archive of all properties sold in Q1 2025',
-    property_ids: [], total_properties: 7, total_value: 14500000,
-    status: 'Archived', created_at: '2025-04-01T00:00:00Z',
-  },
-]
-
-const totalValue = allBooks.reduce((s, b) => s + (b.total_value ?? 0), 0)
-const activeCount = allBooks.filter((b) => b.status === 'Active').length
-const totalProps = allBooks.reduce((s, b) => s + (b.total_properties ?? 0), 0)
 
 const columns = [
   { key: 'book_id', header: 'Book ID', sortable: true,
@@ -65,7 +36,13 @@ const columns = [
     ) },
 ]
 
-export default function BooksPage() {
+export default async function BooksPage() {
+  const books = await getBooks()
+
+  const totalValue = books.reduce((s, b) => s + (b.total_value ?? 0), 0)
+  const activeCount = books.filter((b) => b.status === 'Active').length
+  const totalProps = books.reduce((s, b) => s + (b.total_properties ?? 0), 0)
+
   return (
     <div className="space-y-6 max-w-screen-xl">
       <PageHeader
@@ -83,14 +60,14 @@ export default function BooksPage() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Books" value={allBooks.length} icon={BookOpen} iconColor="text-blue-600" iconBg="bg-blue-100" />
+        <StatCard title="Total Books" value={books.length} icon={BookOpen} iconColor="text-blue-600" iconBg="bg-blue-100" />
         <StatCard title="Active Books" value={activeCount} icon={TrendingUp} iconColor="text-green-600" iconBg="bg-green-100" />
         <StatCard title="Total Properties" value={totalProps} icon={Package} iconColor="text-purple-600" iconBg="bg-purple-100" />
         <StatCard title="Combined Value" value={formatCurrency(totalValue)} icon={Archive} iconColor="text-amber-600" iconBg="bg-amber-100" />
       </div>
 
       <DataTable<Book>
-        data={allBooks}
+        data={books}
         columns={columns}
         searchKeys={['book_name', 'book_id', 'description']}
         emptyMessage="No books found."

@@ -6,12 +6,14 @@ import {
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
 import { formatCurrency, tierIcon, activityIcon } from '@/lib/utils'
-import {
-  mockMetrics, mockLeaderboard, mockRecentActivity,
-} from '@/lib/mock-data'
+import { getDashboardMetrics, getLeaderboard, getRecentActivity } from '@/lib/dal'
 
-export default function DashboardPage() {
-  const m = mockMetrics
+export default async function DashboardPage() {
+  const [m, leaderboard, recentActivity] = await Promise.all([
+    getDashboardMetrics(),
+    getLeaderboard(),
+    getRecentActivity(),
+  ])
 
   return (
     <div className="space-y-6 max-w-screen-xl">
@@ -111,7 +113,7 @@ export default function DashboardPage() {
             <span className="ml-auto text-xs text-slate-400">This month</span>
           </div>
           <div className="space-y-2">
-            {mockLeaderboard.map((b) => (
+            {leaderboard.map((b) => (
               <div key={b.broker_id} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                   b.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
@@ -141,7 +143,7 @@ export default function DashboardPage() {
             <span className="ml-auto text-xs text-slate-400">Live feed</span>
           </div>
           <div className="space-y-1">
-            {mockRecentActivity.map((item) => (
+            {recentActivity.map((item) => (
               <div key={item.id} className="flex items-start gap-3 py-2.5 border-b border-slate-50 last:border-0">
                 <span className="text-lg shrink-0 mt-0.5">{activityIcon(item.type)}</span>
                 <div className="flex-1 min-w-0">

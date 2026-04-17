@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Search, User, LogOut } from 'lucide-react'
+import { Bell, Search, User, LogOut, Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { signOut } from '@/app/actions/auth'
 
@@ -26,9 +26,10 @@ const titleMap: Record<string, string> = {
 interface HeaderProps {
   userEmail?: string | null
   role?: 'admin' | 'broker' | null
+  onMobileNavToggle?: () => void
 }
 
-export default function Header({ userEmail, role }: HeaderProps) {
+export default function Header({ userEmail, role, onMobileNavToggle }: HeaderProps) {
   const pathname = usePathname()
   const base = '/' + pathname.split('/')[1]
   const title = titleMap[base] ?? 'Bluesquare CRM'
@@ -37,9 +38,21 @@ export default function Header({ userEmail, role }: HeaderProps) {
 
   return (
     <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
-      <h1 className="font-semibold text-slate-800 text-base">{title}</h1>
       <div className="flex items-center gap-3">
-        <div className="relative">
+        {/* Hamburger — mobile only */}
+        {onMobileNavToggle && (
+          <button
+            onClick={onMobileNavToggle}
+            className="lg:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
+            aria-label="Open menu"
+          >
+            <Menu size={20} className="text-slate-600" />
+          </button>
+        )}
+        <h1 className="font-semibold text-slate-800 text-base">{title}</h1>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="relative hidden sm:block">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             placeholder="Search..."
@@ -55,7 +68,7 @@ export default function Header({ userEmail, role }: HeaderProps) {
             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
               <User size={16} className="text-white" />
             </div>
-            <div className="text-sm">
+            <div className="text-sm hidden sm:block">
               <div className="font-medium text-slate-800 leading-tight">{displayName}</div>
               <div className="text-xs text-slate-500 truncate max-w-[120px]">
                 {userEmail ?? 'Bluesquare'}
@@ -69,7 +82,7 @@ export default function Header({ userEmail, role }: HeaderProps) {
               className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             >
               <LogOut size={15} />
-              <span>Sign out</span>
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </form>
         </div>

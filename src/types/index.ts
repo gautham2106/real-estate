@@ -157,6 +157,8 @@ export interface BuyerLead {
   follow_up_date?: string
   notes_history?: NoteEntry[]
   converted_deal_id?: string
+  referred_by_name?: string
+  referred_by_phone?: string
   created_at: string
 }
 

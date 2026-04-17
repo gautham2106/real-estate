@@ -22,6 +22,7 @@ import {
   BarChart3,
   ChevronLeft,
   ChevronRight,
+  X,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -46,14 +47,16 @@ const ALL_NAV = [
 
 interface SidebarProps {
   role?: 'admin' | 'broker' | null
+  mobileOpen?: boolean
+  onClose?: () => void
 }
 
-export default function Sidebar({ role = 'admin' }: SidebarProps) {
+export default function Sidebar({ role = 'admin', mobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
   const navItems = ALL_NAV.filter(item => item.roles.includes(role ?? 'admin'))
 
-  return (
+  const sidebarContent = (
     <aside
       className={cn(
         'flex flex-col h-screen bg-slate-900 text-white transition-all duration-300 shrink-0',
@@ -64,10 +67,20 @@ export default function Sidebar({ role = 'admin' }: SidebarProps) {
       <div className={cn('flex items-center gap-3 px-4 py-5 border-b border-slate-700', collapsed && 'justify-center px-2')}>
         <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm shrink-0">B</div>
         {!collapsed && (
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="font-bold text-sm leading-tight">Bluesquare</div>
             <div className="text-xs text-slate-400">Real Estate CRM</div>
           </div>
+        )}
+        {/* Close button — only on mobile */}
+        {!collapsed && onClose && (
+          <button
+            onClick={onClose}
+            className="lg:hidden ml-auto p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            aria-label="Close menu"
+          >
+            <X size={18} />
+          </button>
         )}
       </div>
 
@@ -81,6 +94,7 @@ export default function Sidebar({ role = 'admin' }: SidebarProps) {
               key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
+              onClick={onClose}
               className={cn(
                 'flex items-center gap-3 px-4 py-2.5 text-sm transition-colors hover:bg-slate-800',
                 active ? 'bg-blue-600 text-white hover:bg-blue-700' : 'text-slate-300',
@@ -109,5 +123,36 @@ export default function Sidebar({ role = 'admin' }: SidebarProps) {
         )}
       </button>
     </aside>
+  )
+
+  return (
+    <>
+      {/* Desktop: always visible in normal flow */}
+      <div className="hidden lg:flex">
+        {sidebarContent}
+      </div>
+
+      {/* Mobile: fixed overlay drawer */}
+      <div className="lg:hidden">
+        {/* Backdrop */}
+        {mobileOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40"
+            onClick={onClose}
+            aria-hidden="true"
+          />
+        )}
+
+        {/* Drawer */}
+        <div
+          className={cn(
+            'fixed inset-y-0 left-0 z-50 w-72 transition-transform duration-300',
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          )}
+        >
+          {sidebarContent}
+        </div>
+      </div>
+    </>
   )
 }

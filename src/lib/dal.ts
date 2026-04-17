@@ -139,6 +139,52 @@ export async function getSiteVisits(): Promise<SiteVisit[]> {
   return (data ?? []) as SiteVisit[]
 }
 
+export async function getSiteVisitsByProperty(propertyId: string): Promise<SiteVisit[]> {
+  if (isDemoMode) {
+    return mockSiteVisits
+      .filter(v => v.property_id === propertyId)
+      .sort((a, b) => b.visit_date.localeCompare(a.visit_date))
+  }
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('site_visits')
+    .select('*')
+    .eq('property_id', propertyId)
+    .order('visit_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as SiteVisit[]
+}
+
+export async function getSiteVisitsByBuyer(buyerId: string): Promise<SiteVisit[]> {
+  if (isDemoMode) {
+    return mockSiteVisits
+      .filter(v => v.buyer_id === buyerId)
+      .sort((a, b) => b.visit_date.localeCompare(a.visit_date))
+  }
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('site_visits')
+    .select('*')
+    .eq('buyer_id', buyerId)
+    .order('visit_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as SiteVisit[]
+}
+
+export async function getBuyerLeadById(id: string): Promise<BuyerLead | null> {
+  if (isDemoMode) return mockBuyerLeads.find(l => l.id === id) ?? null
+  const supabase = await createClient()
+  const { data } = await supabase.from('buyer_leads').select('*').eq('id', id).single()
+  return data as BuyerLead | null
+}
+
+export async function getSellerLeadById(id: string): Promise<SellerLead | null> {
+  if (isDemoMode) return mockSellerLeads.find(l => l.id === id) ?? null
+  const supabase = await createClient()
+  const { data } = await supabase.from('seller_leads').select('*').eq('id', id).single()
+  return data as SellerLead | null
+}
+
 // ─── DEALS ────────────────────────────────────────────────
 
 export async function getDeals(filters?: { status?: string }): Promise<Deal[]> {
