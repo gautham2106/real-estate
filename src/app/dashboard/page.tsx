@@ -1,18 +1,21 @@
 import {
   Building2, Users, Handshake, IndianRupee, TrendingUp,
-  UserPlus, Bell, Clock, AlertTriangle, Activity,
+  UserPlus, Clock, AlertTriangle, Activity,
   Trophy, Crown,
 } from 'lucide-react'
+import Link from 'next/link'
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
+import FollowUpsPanel from '@/components/dashboard/FollowUpsPanel'
 import { formatCurrency, tierIcon, activityIcon } from '@/lib/utils'
-import { getDashboardMetrics, getLeaderboard, getRecentActivity } from '@/lib/dal'
+import { getDashboardMetrics, getLeaderboard, getRecentActivity, getFollowUpsToday } from '@/lib/dal'
 
 export default async function DashboardPage() {
-  const [m, leaderboard, recentActivity] = await Promise.all([
+  const [m, leaderboard, recentActivity, followUps] = await Promise.all([
     getDashboardMetrics(),
     getLeaderboard(),
     getRecentActivity(),
+    getFollowUpsToday(),
   ])
 
   return (
@@ -100,6 +103,26 @@ export default async function DashboardPage() {
           href="/properties"
           alert={m.expiring_exclusivity > 0}
         />
+      </div>
+
+      {/* Follow-Ups Today panel */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <Clock size={17} className="text-blue-500" />
+            <h3 className="font-semibold text-slate-800">Follow-Ups Due Today</h3>
+            {followUps.length > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+                {followUps.length}
+              </span>
+            )}
+          </div>
+          <Link href="/alerts" className="text-xs text-blue-600 hover:underline font-medium">
+            All alerts →
+          </Link>
+        </div>
+        <p className="text-xs text-slate-400 mb-4">Call, reschedule, or mark done directly from here</p>
+        <FollowUpsPanel items={followUps} />
       </div>
 
       {/* Bottom section: Leaderboard + Activity */}

@@ -157,6 +157,32 @@ export async function convertSellerLeadToPropertyAction(id: string) {
   return { propertyId: property.id as string }
 }
 
+// Quick follow-up date setter — used from alerts page and lead detail without full edit
+export async function setFollowUpDateAction(
+  id: string,
+  type: 'buyer' | 'seller',
+  date: string,
+) {
+  const table = type === 'buyer' ? 'buyer_leads' : 'seller_leads'
+  const path  = type === 'buyer' ? '/buyer-leads' : '/seller-leads'
+
+  if (isDemoMode) {
+    revalidatePath(path)
+    revalidatePath(`${path}/${id}`)
+    revalidatePath('/alerts')
+    return { success: true }
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase.from(table).update({ follow_up_date: date }).eq('id', id)
+  if (error) return { error: error.message }
+  revalidatePath(path)
+  revalidatePath(`${path}/${id}`)
+  revalidatePath('/alerts')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function updateLeadStatusAction(type: 'seller' | 'buyer', id: string, status: string) {
   if (isDemoMode) { revalidatePath(`/${type}-leads`); return { success: true } }
   const supabase = await createClient()

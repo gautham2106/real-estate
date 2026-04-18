@@ -292,6 +292,23 @@ export default async function BuyerLeadDetailPage(props: {
               {lead.loan_required ? `Yes — ${lead.loan_amount ? formatCurrency(lead.loan_amount) : ''}` : 'No'}
             </p>
           </div>
+          {lead.follow_up_date && (
+            <div className="col-span-2 sm:col-span-1">
+              <p className="text-xs text-slate-400 uppercase tracking-wide">Follow-up Date</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                  lead.follow_up_date <= new Date().toISOString().split('T')[0]
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-blue-100 text-blue-700'
+                }`}>
+                  🗓 {formatDate(lead.follow_up_date)}
+                </span>
+                {lead.follow_up_date <= new Date().toISOString().split('T')[0] && (
+                  <span className="text-xs text-red-500 font-medium">Due!</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

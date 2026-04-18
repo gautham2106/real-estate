@@ -324,6 +324,45 @@ export async function getBooks(): Promise<Book[]> {
   return (data ?? []) as Book[]
 }
 
+// ─── FOLLOW-UPS ──────────────────────────────────────────────────────────────
+
+export interface FollowUpItem {
+  id: string
+  lead_id: string
+  name: string
+  phone: string
+  follow_up_date: string
+  type: 'buyer' | 'seller'
+  status: string
+}
+
+export async function getFollowUpsToday(): Promise<FollowUpItem[]> {
+  const today = new Date().toISOString().split('T')[0]
+  if (isDemoMode) {
+    const buyers: FollowUpItem[] = mockBuyerLeads
+      .filter(l => l.follow_up_date === today)
+      .map(l => ({ id: l.id, lead_id: l.lead_id, name: l.name, phone: l.phone, follow_up_date: l.follow_up_date!, type: 'buyer' as const, status: l.status }))
+    const sellers: FollowUpItem[] = mockSellerLeads
+      .filter(l => l.follow_up_date === today)
+      .map(l => ({ id: l.id, lead_id: l.lead_id, name: l.owner_name, phone: l.phone, follow_up_date: l.follow_up_date!, type: 'seller' as const, status: l.status }))
+    return [...buyers, ...sellers]
+  }
+  const supabase = await createClient()
+  const [{ data: buyers }, { data: sellers }] = await Promise.all([
+    supabase.from('buyer_leads').select('id,lead_id,name,phone,follow_up_date,status').eq('follow_up_date', today),
+    supabase.from('seller_leads').select('id,lead_id,owner_name,phone,follow_up_date,status').eq('follow_up_date', today),
+  ])
+  const b: FollowUpItem[] = (buyers ?? []).map((l: Record<string,string>) => ({
+    id: l.id, lead_id: l.lead_id, name: l.name, phone: l.phone,
+    follow_up_date: l.follow_up_date, status: l.status, type: 'buyer' as const,
+  }))
+  const s: FollowUpItem[] = (sellers ?? []).map((l: Record<string,string>) => ({
+    id: l.id, lead_id: l.lead_id, name: l.owner_name, phone: l.phone,
+    follow_up_date: l.follow_up_date, status: l.status, type: 'seller' as const,
+  }))
+  return [...b, ...s]
+}
+
 // ─── ALERTS ───────────────────────────────────────────────
 
 export async function getAlerts(showDone = false): Promise<Alert[]> {
