@@ -11,6 +11,7 @@ import { formatCurrency, daysUntil } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import DeleteButton from '@/components/ui/DeleteButton'
 import { deletePropertyAction } from '@/app/actions/properties'
+import PropertyLocationSection from '@/components/properties/PropertyLocationSection'
 import type { SiteVisit, Deal } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
@@ -163,9 +164,6 @@ export default async function PropertyDetailPage(props: {
 
   const exclusivityDays = property.exclusivity_end ? daysUntil(property.exclusivity_end) : null
   const brokerName = getBrokerName(property.assigned_broker_id)
-  const mapsUrl = property.gps_lat && property.gps_lng
-    ? `https://maps.google.com/?q=${property.gps_lat},${property.gps_lng}`
-    : null
 
   return (
     <div className="max-w-screen-xl space-y-6">
@@ -191,16 +189,6 @@ export default async function PropertyDetailPage(props: {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {mapsUrl && (
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-              >
-                📍 Get Directions
-              </a>
-            )}
             <Link
               href={`/properties/${id}/edit`}
               className="inline-flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
@@ -297,7 +285,10 @@ export default async function PropertyDetailPage(props: {
         </div>
       </section>
 
-      {/* 2. Owner Info — admin only */}
+      {/* 2. Location map + share */}
+      <PropertyLocationSection property={property} role={role} />
+
+      {/* 3. Owner Info — admin only */}
       {isAdmin && (
         <section className="bg-white border-2 border-amber-300 rounded-2xl p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
@@ -344,7 +335,7 @@ export default async function PropertyDetailPage(props: {
         </section>
       )}
 
-      {/* 3. Visit History */}
+      {/* 4. Visit History */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold text-slate-700">
@@ -366,7 +357,7 @@ export default async function PropertyDetailPage(props: {
         )}
       </section>
 
-      {/* 4. Active Deals */}
+      {/* 5. Active Deals */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-700">
           Active Deals
