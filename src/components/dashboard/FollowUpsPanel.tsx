@@ -11,6 +11,53 @@ interface Props {
   items: FollowUpItem[]
 }
 
+// Urgency: 0=overdue, 1=today, 2=within 3 days, 3=future
+function getUrgency(followUpDate: string): 0 | 1 | 2 | 3 {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const due = new Date(followUpDate)
+  due.setHours(0, 0, 0, 0)
+  const diffDays = Math.round((due.getTime() - today.getTime()) / 86400000)
+  if (diffDays < 0) return 0
+  if (diffDays === 0) return 1
+  if (diffDays <= 3) return 2
+  return 3
+}
+
+function DateBadge({ followUpDate }: { followUpDate: string }) {
+  const urgency = getUrgency(followUpDate)
+  const label = new Date(followUpDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+
+  if (urgency === 0) {
+    return (
+      <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 flex items-center gap-1">
+        <Clock size={10} />
+        Overdue · {label}
+      </span>
+    )
+  }
+  if (urgency === 1) {
+    return (
+      <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 flex items-center gap-1">
+        <Clock size={10} />
+        Today · {label}
+      </span>
+    )
+  }
+  if (urgency === 2) {
+    return (
+      <span className="text-xs font-medium px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 flex items-center gap-1">
+        <Clock size={10} />
+        {label}
+      </span>
+    )
+  }
+  // Future — just gray text, no badge
+  return (
+    <span className="text-xs text-slate-400">{label}</span>
+  )
+}
+
 function FollowUpRow({ item }: { item: FollowUpItem }) {
   const [done, setDone] = useState(false)
   const [reschedule, setReschedule] = useState(false)
@@ -39,7 +86,7 @@ function FollowUpRow({ item }: { item: FollowUpItem }) {
         <Link href={href} className="text-sm font-semibold text-slate-800 hover:text-blue-600 truncate block">
           {item.name}
         </Link>
-        <div className="flex items-center gap-2 mt-0.5">
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
           <span className="text-xs text-slate-400">{item.lead_id}</span>
           <span className="text-xs text-slate-300">·</span>
           <span className={cn(
@@ -48,6 +95,7 @@ function FollowUpRow({ item }: { item: FollowUpItem }) {
           )}>
             {item.type === 'buyer' ? 'Buyer' : 'Seller'}
           </span>
+          <DateBadge followUpDate={item.follow_up_date} />
         </div>
       </div>
 
@@ -116,14 +164,17 @@ export default function FollowUpsPanel({ items }: Props) {
       <div className="flex flex-col items-center justify-center py-8 text-center">
         <CheckCircle size={28} className="text-green-400 mb-2" />
         <p className="text-sm text-slate-500 font-medium">No follow-ups due today</p>
-        <p className="text-xs text-slate-400 mt-0.5">You're all caught up!</p>
+        <p className="text-xs text-slate-400 mt-0.5">You&apos;re all caught up!</p>
       </div>
     )
   }
 
+  // Sort by urgency: overdue (0) → today (1) → within 3 days (2) → future (3)
+  const sorted = [...items].sort((a, b) => getUrgency(a.follow_up_date) - getUrgency(b.follow_up_date))
+
   return (
     <div>
-      {items.map(item => (
+      {sorted.map(item => (
         <FollowUpRow key={`${item.type}-${item.id}`} item={item} />
       ))}
     </div>

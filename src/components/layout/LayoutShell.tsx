@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import FloatingActions from './FloatingActions'
 
 interface LayoutShellProps {
   role: 'admin' | 'broker' | null
@@ -29,6 +30,7 @@ export default function LayoutShell({ role, userEmail, children }: LayoutShellPr
         <main className="flex-1 overflow-y-auto p-6">
           {children}
         </main>
+        <FloatingActions role={role} />
       </div>
     </>
   )
