@@ -227,6 +227,7 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
                 sideB={parseFloat(form.side_b) || 0}
                 sideC={parseFloat(form.side_c) || 0}
                 sideD={parseFloat(form.side_d) || 0}
+                facing={form.facing || undefined}
                 unit="ft"
               />
             </div>

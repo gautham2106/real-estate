@@ -20,7 +20,7 @@ import {
   arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Kanban, Filter, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Kanban, Filter, ChevronLeft, ChevronRight, ArrowLeftRight, X } from 'lucide-react'
 import Link from 'next/link'
 import PageHeader from '@/components/ui/PageHeader'
 import { formatCurrency, cn } from '@/lib/utils'
@@ -237,6 +237,7 @@ export default function KanbanClient({
   const [minValue, setMinValue] = useState('')
   const [maxValue, setMaxValue] = useState('')
   const [mobileColIdx, setMobileColIdx] = useState(0)
+  const [statusModal, setStatusModal] = useState<Deal | null>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
 
   const sensors = useSensors(
@@ -425,31 +426,88 @@ export default function KanbanClient({
               const buyerName = buyerMap[deal.buyer_lead_id] ?? 'Unknown'
               const days = daysSince(deal.created_at)
               return (
-                <Link
-                  key={deal.id}
-                  href={`/deals/${deal.id}`}
-                  className="block bg-white rounded-xl border border-slate-200 p-4 hover:border-blue-300 hover:shadow-sm transition-all"
-                >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="font-bold text-xs text-blue-700 font-mono">{prop?.land_code ?? deal.property_id}</span>
-                    <span className="text-xs text-slate-400">{deal.deal_id}</span>
-                  </div>
-                  <p className="text-sm font-medium text-slate-800 mb-1">{buyerName}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold text-slate-900">{formatCurrency(deal.deal_value)}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full max-w-[100px] truncate">{brokerName}</span>
-                      <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded', days > 14 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500')}>
-                        {days}d
-                      </span>
+                <div key={deal.id} className="relative">
+                  <Link
+                    href={`/deals/${deal.id}`}
+                    className="block bg-white rounded-xl border border-slate-200 p-4 pr-12 hover:border-blue-300 hover:shadow-sm transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                      <span className="font-bold text-xs text-blue-700 font-mono">{prop?.land_code ?? deal.property_id}</span>
+                      <span className="text-xs text-slate-400">{deal.deal_id}</span>
                     </div>
-                  </div>
-                </Link>
+                    <p className="text-sm font-semibold text-slate-800 mb-1 truncate">{deal.deal_title}</p>
+                    <p className="text-xs text-slate-500 mb-2 truncate">{buyerName}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-900">{formatCurrency(deal.deal_value)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full max-w-[90px] truncate">{brokerName}</span>
+                        <span className={cn('text-xs font-semibold px-1.5 py-0.5 rounded', days > 14 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500')}>
+                          {days}d
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                  <button
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setStatusModal(deal) }}
+                    className="absolute top-1/2 -translate-y-1/2 right-3 p-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 transition-colors"
+                    title="Change status"
+                  >
+                    <ArrowLeftRight size={13} />
+                  </button>
+                </div>
               )
             })
           )}
         </div>
       </div>
+
+      {/* Status change bottom sheet */}
+      {statusModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end bg-black/40"
+          onClick={() => setStatusModal(null)}
+        >
+          <div
+            className="w-full bg-white rounded-t-2xl shadow-2xl max-h-[80vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-slate-100">
+              <div>
+                <p className="text-xs text-slate-400 mb-0.5">Move deal</p>
+                <p className="text-sm font-semibold text-slate-800 truncate max-w-[260px]">{statusModal.deal_title}</p>
+              </div>
+              <button onClick={() => setStatusModal(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-4 space-y-1.5 pb-8">
+              {COLUMNS.map(col => (
+                <button
+                  key={col.status}
+                  onClick={() => {
+                    setDeals(prev => prev.map(d =>
+                      d.id === statusModal.id ? { ...d, status: col.status } : d
+                    ))
+                    // If the column we moved from is still selected, keep it; adjust if now empty
+                    setStatusModal(null)
+                  }}
+                  className={cn(
+                    'w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-colors flex items-center justify-between',
+                    statusModal.status === col.status
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-700'
+                  )}
+                >
+                  <span>{col.status}</span>
+                  {statusModal.status === col.status && (
+                    <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Current</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Kanban Board — desktop only */}
       <div className="hidden md:block">
