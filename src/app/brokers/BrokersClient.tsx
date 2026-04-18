@@ -13,7 +13,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/ui/DataTable'
-import { formatCurrency, tierIcon, cn } from '@/lib/utils'
+import { formatCurrency, tierIcon, cn, formatDate } from '@/lib/utils'
 import type { Broker, BrokerStatus } from '@/types'
 
 const brokerStatuses: BrokerStatus[] = ['Active', 'Inactive', 'Blacklisted']
@@ -70,7 +70,7 @@ const columns = [
   {
     key: 'joined_date',
     header: 'Joined',
-    render: (row: Broker) => new Date(row.joined_date).toLocaleDateString('en-IN'),
+    render: (row: Broker) => formatDate(row.joined_date),
   },
   {
     key: 'login_active',

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Calendar, PlusCircle, Eye } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import Badge from '@/components/ui/Badge'
-import { formatCurrency, cn } from '@/lib/utils'
+import { formatCurrency, cn, formatDate } from '@/lib/utils'
 import type { SiteVisit, Property, BuyerLead, Broker } from '@/types'
 
 type ReactionFilter = 'All' | 'Interested' | 'Not Interested' | 'Negotiating' | 'Need Time'
@@ -112,7 +112,7 @@ export default function SiteVisitsClient({ siteVisits, properties, buyerLeads, b
                   </div>
                   <div>
                     <p className="text-slate-400 font-medium">Visit Date</p>
-                    <p>{new Date(v.visit_date).toLocaleDateString('en-IN')} {v.visit_time ?? ''}</p>
+                    <p>{formatDate(v.visit_date)} {v.visit_time ?? ''}</p>
                   </div>
                   <div>
                     <p className="text-slate-400 font-medium">Broker</p>
@@ -133,7 +133,7 @@ export default function SiteVisitsClient({ siteVisits, properties, buyerLeads, b
                 {v.next_action_date && (
                   <div className="text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2 text-center">
                     <p className="text-slate-400">Next Action</p>
-                    <p className="font-medium">{new Date(v.next_action_date).toLocaleDateString('en-IN')}</p>
+                    <p className="font-medium">{formatDate(v.next_action_date)}</p>
                     <p className="text-slate-600 mt-0.5">{v.next_action}</p>
                   </div>
                 )}

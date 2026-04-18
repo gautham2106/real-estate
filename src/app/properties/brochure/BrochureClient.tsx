@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Property } from '@/types'
 import Badge from '@/components/ui/Badge'
 
@@ -288,7 +288,7 @@ export default function BrochureClient({ properties }: Props) {
             <div className="print-header col-span-2 mb-4" style={{ gridColumn: '1 / -1' }}>
               <div className="text-center pb-4 border-b-2 border-blue-700 mb-6">
                 <h1 className="text-2xl font-black text-blue-800">BLUESQUARE REALTY</h1>
-                <p className="text-slate-500 text-sm">Property Catalog · {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <p className="text-slate-500 text-sm">Property Catalog · {formatDate(new Date())}</p>
                 <p className="text-slate-500 text-sm">{selected.size} Properties Selected</p>
               </div>
             </div>

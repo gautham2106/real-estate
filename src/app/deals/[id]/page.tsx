@@ -6,7 +6,7 @@ import DeleteButton from '@/components/ui/DeleteButton'
 import { getDealById, getPropertyById, getBuyerLeadById, getBrokers } from '@/lib/dal'
 import { getUserRole } from '@/lib/auth'
 import { deleteDealAction } from '@/app/actions/deals'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 
 export default async function DealDetailPage(props: {
   params: Promise<{ id: string }>
@@ -40,7 +40,7 @@ export default async function DealDetailPage(props: {
               <Badge status={deal.status} />
             </div>
             <h1 className="text-xl font-bold text-slate-800">{deal.deal_title}</h1>
-            <p className="text-sm text-slate-500 mt-0.5">Created {new Date(deal.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p className="text-sm text-slate-500 mt-0.5">Created {formatDate(deal.created_at)}</p>
           </div>
           <div className="flex gap-2">
             <Link href={`/deals/${id}/edit`} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">

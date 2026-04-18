@@ -6,7 +6,7 @@ import DeleteButton from '@/components/ui/DeleteButton'
 import { getBrokerById, getBrokers } from '@/lib/dal'
 import { getUserRole } from '@/lib/auth'
 import { deleteBrokerAction } from '@/app/actions/brokers'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 
 const TIER_COLORS: Record<string, string> = {
   Elite: 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -134,7 +134,7 @@ export default async function BrokerDetailPage(props: {
             {broker.last_login && (
               <div className="flex justify-between">
                 <span className="text-slate-500">Last Login</span>
-                <span className="font-medium text-slate-700">{new Date(broker.last_login).toLocaleDateString('en-IN')}</span>
+                <span className="font-medium text-slate-700">{formatDate(broker.last_login)}</span>
               </div>
             )}
           </div>

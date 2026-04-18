@@ -35,6 +35,17 @@ export default async function DashboardPage() {
         <p className="text-sm text-slate-500 mt-0.5">{greetingSubtitle}</p>
       </div>
 
+      {/* Secondary metrics — thin strip, no chrome, above main KPIs */}
+      <div className="text-xs text-slate-500 flex flex-wrap gap-x-3 gap-y-1">
+        <span>Your Net: <span className="font-semibold text-slate-700">{formatCurrency(m.your_net_this_month)}</span></span>
+        <span className="text-slate-300">|</span>
+        <span>New Leads: <span className="font-semibold text-slate-700">{m.new_leads_today}</span></span>
+        <span className="text-slate-300">|</span>
+        <span>Follow-Ups: <span className={`font-semibold ${m.follow_ups_today > 5 ? 'text-orange-600' : 'text-slate-700'}`}>{m.follow_ups_today}</span></span>
+        <span className="text-slate-300">|</span>
+        <span>Expiring: <span className={`font-semibold ${m.expiring_exclusivity > 0 ? 'text-orange-600' : 'text-slate-700'}`}>{m.expiring_exclusivity}</span></span>
+      </div>
+
       {/* Primary 4 KPI cards — horizontal scroll on mobile */}
       <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-1 -mx-4 px-4 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:mx-0 md:px-0">
         <div className="snap-start shrink-0 w-52 md:w-auto">
@@ -76,30 +87,6 @@ export default async function DashboardPage() {
             iconBg="bg-emerald-100" iconColor="text-emerald-600"
             href="/reports"
           />
-        </div>
-      </div>
-
-      {/* Secondary metrics strip — thin, no-chrome */}
-      <div className="flex divide-x divide-slate-200 bg-white border border-slate-200 rounded-xl overflow-hidden">
-        <div className="flex-1 px-4 py-2.5 text-center min-w-0">
-          <p className="text-base font-bold text-slate-800 leading-tight">{formatCurrency(m.your_net_this_month)}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Your Net This Month</p>
-        </div>
-        <div className="flex-1 px-4 py-2.5 text-center min-w-0">
-          <p className="text-base font-bold text-slate-800 leading-tight">{m.new_leads_today}</p>
-          <p className="text-[11px] text-slate-500 mt-0.5">New Leads Today</p>
-        </div>
-        <div className="flex-1 px-4 py-2.5 text-center min-w-0">
-          <p className={`text-base font-bold leading-tight ${m.follow_ups_today > 5 ? 'text-orange-600' : 'text-slate-800'}`}>
-            {m.follow_ups_today}
-          </p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Follow-Ups Today</p>
-        </div>
-        <div className="flex-1 px-4 py-2.5 text-center min-w-0">
-          <p className={`text-base font-bold leading-tight ${m.expiring_exclusivity > 0 ? 'text-orange-600' : 'text-slate-800'}`}>
-            {m.expiring_exclusivity}
-          </p>
-          <p className="text-[11px] text-slate-500 mt-0.5">Expiring Exclusivity</p>
         </div>
       </div>
 

@@ -329,10 +329,10 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
 
         {/* Owner Details — Admin Only */}
         {isAdmin && (
-          <div className="bg-white rounded-xl border border-amber-200 p-6">
+          <div className="bg-white rounded-xl border border-slate-200 p-6">
             <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
               <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Owner Details</h3>
-              <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">Admin Only</span>
+              <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full font-medium">Sensitive — admin only</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Field label="Owner Name"><input name="owner_name" className={inputCls} value={form.owner_name} onChange={e => set('owner_name', e.target.value)} placeholder="Full name" /></Field>

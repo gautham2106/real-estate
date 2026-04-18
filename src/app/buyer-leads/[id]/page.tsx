@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getBuyerLeadById, getSiteVisitsByBuyer, getDeals, getProperties } from '@/lib/dal'
 import { getUserRole } from '@/lib/auth'
 import { mockBrokers, mockProperties } from '@/lib/mock-data'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import DeleteButton from '@/components/ui/DeleteButton'
 import { deleteBuyerLeadAction } from '@/app/actions/leads'
@@ -42,11 +42,6 @@ function urgencyColor(urgency: string): string {
   return map[urgency] ?? 'bg-gray-100 text-gray-700'
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
 
 // ─── Sub-components ────────────────────────────────────────
 

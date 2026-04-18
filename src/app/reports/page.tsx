@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Download, BarChart3, FileText } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import Badge from '@/components/ui/Badge'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import { mockDeals, mockBrokers, mockBuyerLeads, mockSellerLeads, mockProperties } from '@/lib/mock-data'
 
 type ReportTab = 'Overview' | 'Deals' | 'Brokers' | 'Leads' | 'Properties' | 'Commission'
@@ -48,7 +48,7 @@ export default function ReportsPage() {
       const dealsData = mockDeals.map(d => ({
         'Deal ID': d.deal_id, 'Title': d.deal_title, 'Deal Value': d.deal_value,
         'Total Commission': d.total_commission ?? 0, 'Your Net': d.your_net ?? 0, 'Status': d.status,
-        'Created': new Date(d.created_at).toLocaleDateString('en-IN'),
+        'Created': formatDate(d.created_at),
       }))
       XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dealsData), 'Deals')
 
@@ -89,7 +89,7 @@ export default function ReportsPage() {
     try {
       const { default: jsPDF } = await import('jspdf')
       const doc = new jsPDF()
-      const today = new Date().toLocaleDateString('en-IN')
+      const today = formatDate(new Date())
       let y = 20
 
       // Header

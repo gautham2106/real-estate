@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/ui/DataTable'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Book } from '@/types'
 
 const columns = [
@@ -20,7 +20,7 @@ const columns = [
   { key: 'status', header: 'Status',
     render: (row: Book) => <Badge status={row.status} /> },
   { key: 'created_at', header: 'Created',
-    render: (row: Book) => new Date(row.created_at).toLocaleDateString('en-IN') },
+    render: (row: Book) => formatDate(row.created_at) },
   { key: 'actions', header: '',
     render: (row: Book) => (
       <div className="flex items-center gap-2">

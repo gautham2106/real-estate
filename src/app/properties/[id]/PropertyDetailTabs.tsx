@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, Fragment } from 'react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import PropertyLocationSection from '@/components/properties/PropertyLocationSection'
 import ShapePreview from '@/components/ui/ShapePreview'
@@ -36,11 +36,6 @@ function exclusivityBadgeColor(days: number): string {
   return 'bg-red-100 text-red-800'
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
 
 // ─── Sub-components ────────────────────────────────────────
 
@@ -419,7 +414,7 @@ export default function PropertyDetailTabs({
         {activeTab === 'Owner Info' && isAdmin && (
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-5">
             <div className="flex items-center gap-2">
-              <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">Admin Only</span>
+              <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">Sensitive — admin only</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

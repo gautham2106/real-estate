@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getSellerLeadById, getSiteVisitsByProperty } from '@/lib/dal'
 import { getUserRole } from '@/lib/auth'
 import { mockBrokers, mockBuyerLeads } from '@/lib/mock-data'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import DeleteButton from '@/components/ui/DeleteButton'
 import ConvertToListingButton from '@/components/ui/ConvertToListingButton'
@@ -22,11 +22,6 @@ function getBuyerName(buyerId: string | undefined): string {
   return mockBuyerLeads.find(b => b.id === buyerId)?.name ?? `Lead #${buyerId}`
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-IN', {
-    day: 'numeric', month: 'short', year: 'numeric',
-  })
-}
 
 // ─── Sub-components ────────────────────────────────────────
 

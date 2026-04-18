@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { createClient } from '@/lib/supabase/server'
+import { formatDate } from '@/lib/utils'
 import {
   mockProperties, mockBuyerLeads, mockSellerLeads, mockDeals,
   mockBrokers, mockSiteVisits, mockAlerts, mockBooks, mockDocuments,
@@ -465,7 +466,7 @@ export async function getRecentActivity(limit = 6): Promise<RecentActivity[]> {
     type: a.type,
     description: a.description,
     user: a.actor,
-    timestamp: new Date(a.created_at).toLocaleDateString('en-IN'),
+    timestamp: formatDate(a.created_at),
   }))
 }
 

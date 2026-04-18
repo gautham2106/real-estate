@@ -24,6 +24,12 @@ export function generateLeadId(prefix: string, seq: number): string {
   return `${prefix}-${String(seq).padStart(3, '0')}`
 }
 
+export function formatDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric',
+  })
+}
+
 export function daysUntil(dateStr: string): number {
   const date = new Date(dateStr)
   const today = new Date()

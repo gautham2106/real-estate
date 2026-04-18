@@ -6,7 +6,7 @@ import DeleteButton from '@/components/ui/DeleteButton'
 import { getBookById, getProperties } from '@/lib/dal'
 import { getUserRole } from '@/lib/auth'
 import { deleteBookAction } from '@/app/actions/books'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 
 export default async function BookDetailPage(props: {
   params: Promise<{ id: string }>
@@ -63,7 +63,7 @@ export default async function BookDetailPage(props: {
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
           <p className="text-xs text-slate-500 mb-1">Created</p>
-          <p className="text-sm font-medium text-slate-700">{new Date(book.created_at).toLocaleDateString('en-IN')}</p>
+          <p className="text-sm font-medium text-slate-700">{formatDate(book.created_at)}</p>
         </div>
       </div>
 

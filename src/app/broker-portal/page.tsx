@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { cn, formatCurrency, tierIcon } from '@/lib/utils'
+import { cn, formatCurrency, tierIcon, formatDate } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import { getBrokers, getBuyerLeads, getSellerLeads, getDeals, getLeaderboard } from '@/lib/dal'
 import { getUser } from '@/lib/auth'
@@ -85,7 +85,7 @@ export default async function BrokerPortalPage() {
           <p className="text-blue-200 text-sm mb-1">Broker Portal</p>
           <h2 className="text-2xl font-bold">Welcome back, {broker.name}!</h2>
           <p className="text-blue-200 text-sm mt-1">
-            {broker.broker_id} &nbsp;·&nbsp; Joined {new Date(broker.joined_date).toLocaleDateString('en-IN')}
+            {broker.broker_id} &nbsp;·&nbsp; Joined {formatDate(broker.joined_date)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -233,7 +233,7 @@ export default async function BrokerPortalPage() {
                     </td>
                     <td className="px-4 py-3 text-slate-600">{lead.preferred_location ?? '—'}</td>
                     <td className="px-4 py-3"><Badge status={lead.status} /></td>
-                    <td className="px-4 py-3 text-slate-500">{new Date(lead.created_at).toLocaleDateString('en-IN')}</td>
+                    <td className="px-4 py-3 text-slate-500">{formatDate(lead.created_at)}</td>
                   </tr>
                 ))}
               </tbody>

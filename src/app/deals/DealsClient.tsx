@@ -13,7 +13,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import StatCard from '@/components/ui/StatCard'
 import Badge from '@/components/ui/Badge'
 import DataTable from '@/components/ui/DataTable'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDate } from '@/lib/utils'
 import type { Deal, DealStatus } from '@/types'
 
 const allStatuses: DealStatus[] = [
@@ -109,7 +109,7 @@ export default function DealsClient({ deals, propertyMap, brokerMap }: DealsClie
     {
       key: 'created_at',
       header: 'Created',
-      render: (row: Deal) => new Date(row.created_at).toLocaleDateString('en-IN'),
+      render: (row: Deal) => formatDate(row.created_at),
     },
   ]
 
