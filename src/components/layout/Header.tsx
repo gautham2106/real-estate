@@ -21,6 +21,8 @@ const titleMap: Record<string, string> = {
   '/alerts': 'Alerts & Reminders',
   '/broker-network': 'Broker Network Tree',
   '/reports': 'Reports',
+  '/search': 'Search',
+  '/calendar': 'Calendar',
 }
 
 interface HeaderProps {
@@ -52,13 +54,14 @@ export default function Header({ userEmail, role, onMobileNavToggle }: HeaderPro
         <h1 className="font-semibold text-slate-800 text-base">{title}</h1>
       </div>
       <div className="flex items-center gap-3">
-        <div className="relative hidden sm:block">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <form method="get" action="/search" className="relative hidden sm:block">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
-            placeholder="Search..."
-            className="pl-9 pr-4 py-1.5 text-sm bg-slate-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 w-48"
+            name="q"
+            placeholder="Search leads, properties…"
+            className="pl-9 pr-4 py-1.5 text-sm bg-slate-100 rounded-lg border-0 focus:outline-none focus:ring-2 focus:ring-blue-500 w-52"
           />
-        </div>
+        </form>
         <button className="relative p-2 rounded-lg hover:bg-slate-100 transition-colors">
           <Bell size={18} className="text-slate-600" />
           <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />

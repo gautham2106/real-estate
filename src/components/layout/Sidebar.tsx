@@ -7,7 +7,7 @@ import {
   LayoutDashboard, MapPin, UserMinus, UserPlus, Calendar,
   Handshake, Users, UserCircle, FolderOpen, Columns3,
   BookOpen, Calculator, Globe, Bell, Network, BarChart3,
-  ChevronLeft, ChevronRight, X,
+  ChevronLeft, ChevronRight, X, Search,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -30,6 +30,8 @@ const NAV_GROUPS: NavGroup[] = [
     roles: ['admin', 'broker'],
     items: [
       { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'broker'] },
+      { href: '/search',    label: 'Search',    icon: Search,          roles: ['admin', 'broker'] },
+      { href: '/calendar',  label: 'Calendar',  icon: Calendar,        roles: ['admin', 'broker'] },
       { href: '/alerts',    label: 'Alerts',    icon: Bell,            roles: ['admin', 'broker'] },
       { href: '/kanban',    label: 'Pipeline',  icon: Columns3,        roles: ['admin', 'broker'] },
     ],
@@ -40,7 +42,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/seller-leads', label: 'Seller Leads', icon: UserMinus, roles: ['admin', 'broker'] },
       { href: '/buyer-leads',  label: 'Buyer Leads',  icon: UserPlus,  roles: ['admin', 'broker'] },
-      { href: '/site-visits',  label: 'Site Visits',  icon: Calendar,  roles: ['admin', 'broker'] },
+      { href: '/site-visits',  label: 'Site Visits',  icon: MapPin,    roles: ['admin', 'broker'] },
     ],
   },
   {
