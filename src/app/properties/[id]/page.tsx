@@ -13,6 +13,7 @@ import DeleteButton from '@/components/ui/DeleteButton'
 import { deletePropertyAction } from '@/app/actions/properties'
 import PropertyLocationSection from '@/components/properties/PropertyLocationSection'
 import QuickEnquiryForm from '@/components/properties/QuickEnquiryForm'
+import ShapePreview from '@/components/ui/ShapePreview'
 import type { SiteVisit, Deal } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
@@ -286,7 +287,54 @@ export default async function PropertyDetailPage(props: {
         </div>
       </section>
 
-      {/* 2. Location map + share */}
+      {/* 2. Photo Gallery */}
+      {property.photo_urls && property.photo_urls.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-slate-700">Photos</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {property.photo_urls.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group block">
+                <img
+                  src={url}
+                  alt={`Photo ${i + 1}`}
+                  className="w-full h-40 object-cover rounded-xl border border-slate-200 shadow-sm group-hover:opacity-90 transition-opacity"
+                />
+              </a>
+            ))}
+          </div>
+          {property.video_link && (
+            <a
+              href={property.video_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+            >
+              ▶ Watch Video
+            </a>
+          )}
+        </section>
+      )}
+
+      {/* 3. Plot Shape */}
+      {(property.side_a && property.side_b && property.side_c && property.side_d) && (
+        <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <h2 className="text-base font-semibold text-slate-700 mb-4">Plot Shape Diagram</h2>
+          <div className="flex justify-center">
+            <div className="w-full max-w-sm">
+              <ShapePreview
+                sideA={property.side_a!}
+                sideB={property.side_b!}
+                sideC={property.side_c!}
+                sideD={property.side_d!}
+                facing={property.facing}
+                unit="ft"
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 4. Location map + share */}
       <PropertyLocationSection property={property} role={role} />
 
       {/* 3. Owner Info — admin only */}

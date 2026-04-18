@@ -66,6 +66,7 @@ export interface Property {
   exclusivity_agreement_url?: string
   marketing_status?: MarketingStatus
   video_link?: string
+  photo_urls?: string[]
   assigned_broker_id?: string
   book_id?: string
   status: PropertyStatus

@@ -25,12 +25,17 @@ export default async function PropertiesPage() {
         title="Properties & Land"
         subtitle={`${properties.length} properties in the system`}
         action={
-          isAdmin ? (
-            <Link href="/properties/new" className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-              <PlusCircle size={15} />
-              Add Property
+          <div className="flex gap-2">
+            <Link href="/properties/brochure" className="flex items-center gap-1.5 px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors">
+              📄 Brochure
             </Link>
-          ) : undefined
+            {isAdmin && (
+              <Link href="/properties/new" className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                <PlusCircle size={15} />
+                Add Property
+              </Link>
+            )}
+          </div>
         }
       />
 

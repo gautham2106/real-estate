@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { ArrowLeft, MapPin } from 'lucide-react'
+import { ArrowLeft, MapPin, Plus, X, Image as ImageIcon } from 'lucide-react'
 import PageHeader from '@/components/ui/PageHeader'
 import ShapePreview from '@/components/ui/ShapePreview'
 import type { Property } from '@/types'
@@ -28,6 +28,7 @@ interface FormState {
   exclusivity_start: string; exclusivity_end: string
   assigned_broker: string; property_status: string; internal_notes: string
   side_a: string; side_b: string; side_c: string; side_d: string
+  video_link: string
 }
 
 const defaultForm: FormState = {
@@ -41,6 +42,7 @@ const defaultForm: FormState = {
   exclusivity_start: '', exclusivity_end: '',
   assigned_broker: '', property_status: 'Available', internal_notes: '',
   side_a: '', side_b: '', side_c: '', side_d: '',
+  video_link: '',
 }
 
 function fromProperty(p: Property): FormState {
@@ -81,6 +83,7 @@ function fromProperty(p: Property): FormState {
     side_b: p.side_b ? String(p.side_b) : '',
     side_c: p.side_c ? String(p.side_c) : '',
     side_d: p.side_d ? String(p.side_d) : '',
+    video_link: p.video_link ?? '',
   }
 }
 
@@ -109,6 +112,7 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
   const [form, setForm] = useState<FormState>(() =>
     initialData ? fromProperty(initialData) : defaultForm
   )
+  const [photoUrls, setPhotoUrls] = useState<string[]>(initialData?.photo_urls ?? [''])
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [showMapPicker, setShowMapPicker] = useState(false)
@@ -346,6 +350,64 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Exclusivity Start Date"><input name="exclusivity_start" className={inputCls} type="date" value={form.exclusivity_start} onChange={e => set('exclusivity_start', e.target.value)} /></Field>
             <Field label="Exclusivity End Date"><input name="exclusivity_end" className={inputCls} type="date" value={form.exclusivity_end} onChange={e => set('exclusivity_end', e.target.value)} /></Field>
+          </div>
+        </div>
+
+        {/* Photos & Media */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <SectionTitle>Photos & Media</SectionTitle>
+          <div className="space-y-4">
+            {/* Photo URLs */}
+            <div>
+              <p className="text-xs font-medium text-slate-600 mb-2">Property Photos <span className="text-slate-400">(paste image URLs)</span></p>
+              <div className="space-y-2">
+                {photoUrls.map((url, i) => (
+                  <div key={i} className="flex gap-2 items-start">
+                    <div className="flex-shrink-0 mt-1">
+                      {url ? (
+                        <img
+                          src={url}
+                          alt=""
+                          className="w-10 h-10 rounded-lg object-cover border border-slate-200 bg-slate-100"
+                          onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
+                          <ImageIcon size={16} className="text-slate-400" />
+                        </div>
+                      )}
+                    </div>
+                    <input
+                      name="photo_urls"
+                      type="url"
+                      value={url}
+                      onChange={e => setPhotoUrls(prev => prev.map((u, j) => j === i ? e.target.value : u))}
+                      placeholder="https://example.com/photo.jpg"
+                      className={inputCls + ' flex-1'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPhotoUrls(prev => prev.length === 1 ? [''] : prev.filter((_, j) => j !== i))}
+                      className="mt-2 text-slate-400 hover:text-red-500 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setPhotoUrls(prev => [...prev, ''])}
+                className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
+              >
+                <Plus size={14} /> Add another photo URL
+              </button>
+            </div>
+            {/* Video */}
+            <Field label="Video Link (YouTube / Drive)">
+              <input name="video_link" className={inputCls} type="url" value={form.video_link}
+                onChange={e => set('video_link', e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+            </Field>
           </div>
         </div>
 

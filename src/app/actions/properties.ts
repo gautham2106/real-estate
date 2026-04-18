@@ -42,6 +42,7 @@ const propertySchema = z.object({
   side_b: z.coerce.number().optional(),
   side_c: z.coerce.number().optional(),
   side_d: z.coerce.number().optional(),
+  video_link: z.string().optional(),
 })
 
 export async function createPropertyAction(formData: FormData) {
@@ -50,13 +51,17 @@ export async function createPropertyAction(formData: FormData) {
     redirect('/properties')
   }
   const raw = Object.fromEntries(formData.entries())
+  const photo_urls = formData.getAll('photo_urls').map(String).filter(Boolean)
   const parsed = propertySchema.safeParse(raw)
   if (!parsed.success) {
     return { error: parsed.error.issues.map(e => e.message).join(', ') }
   }
   const supabase = await createClient()
   const land_code = await generateLandCode(supabase)
-  const { error } = await supabase.from('properties').insert({ ...parsed.data, land_code })
+  const { error } = await supabase.from('properties').insert({
+    ...parsed.data, land_code,
+    ...(photo_urls.length > 0 ? { photo_urls } : {}),
+  })
   if (error) return { error: error.message }
   await logActivity('Property Created', `Added property ${land_code}`)
   revalidatePath('/properties')
@@ -76,10 +81,14 @@ export async function updatePropertyStatusAction(id: string, status: string) {
 export async function updatePropertyAction(id: string, formData: FormData) {
   if (isDemoMode) { revalidatePath('/properties'); return { success: true } }
   const raw = Object.fromEntries(formData.entries())
+  const photo_urls = formData.getAll('photo_urls').map(String).filter(Boolean)
   const parsed = propertySchema.partial().safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  const { error } = await supabase.from('properties').update(parsed.data).eq('id', id)
+  const { error } = await supabase.from('properties').update({
+    ...parsed.data,
+    ...(photo_urls.length > 0 ? { photo_urls } : {}),
+  }).eq('id', id)
   if (error) return { error: error.message }
   await logActivity('Property Updated', `Updated property ${id}`)
   revalidatePath('/properties')
