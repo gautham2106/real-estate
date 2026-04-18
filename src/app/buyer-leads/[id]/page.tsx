@@ -1,12 +1,13 @@
 import Link from 'next/link'
-import { getBuyerLeadById, getSiteVisitsByBuyer, getDeals } from '@/lib/dal'
+import { getBuyerLeadById, getSiteVisitsByBuyer, getDeals, getProperties } from '@/lib/dal'
 import { getUserRole } from '@/lib/auth'
 import { mockBrokers, mockProperties } from '@/lib/mock-data'
 import { formatCurrency } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import DeleteButton from '@/components/ui/DeleteButton'
 import { deleteBuyerLeadAction } from '@/app/actions/leads'
-import type { SiteVisit, Deal, NoteEntry } from '@/types'
+import QuickNoteForm from '@/components/leads/QuickNoteForm'
+import type { SiteVisit, Deal, NoteEntry, Property } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
 
@@ -148,10 +149,11 @@ export default async function BuyerLeadDetailPage(props: {
 }) {
   const { id } = await props.params
 
-  const [lead, visits, allDeals, role] = await Promise.all([
+  const [lead, visits, allDeals, allProperties, role] = await Promise.all([
     getBuyerLeadById(id),
     getSiteVisitsByBuyer(id),
     getDeals(),
+    getProperties({ status: 'Available' }),
     getUserRole(),
   ])
 
@@ -170,6 +172,21 @@ export default async function BuyerLeadDetailPage(props: {
   const deals = allDeals.filter(d => d.buyer_lead_id === id)
   const addedByBrokerName = getBrokerName(lead.added_by_broker_id)
   const isAdmin = role === 'admin'
+
+  // Property matching logic
+  const hasFilters = lead.budget_max || lead.property_type_needed
+  const matchedProperties: Property[] = hasFilters
+    ? allProperties
+        .filter(p => {
+          const budgetOk = lead.budget_max ? p.price <= lead.budget_max : true
+          const typeOk = lead.property_type_needed ? p.type === lead.property_type_needed : true
+          return budgetOk && typeOk
+        })
+        .sort((a, b) => a.price - b.price)
+        .slice(0, 5)
+    : allProperties
+        .sort((a, b) => a.price - b.price)
+        .slice(0, 5)
 
   return (
     <div className="max-w-screen-xl space-y-6">
@@ -349,7 +366,57 @@ export default async function BuyerLeadDetailPage(props: {
         </div>
       </section>
 
-      {/* 3. Properties Visited */}
+      {/* 3. Matched Properties */}
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold text-slate-700">
+          Matched Properties
+          <span className="ml-2 text-xs font-normal text-slate-400">
+            ({matchedProperties.length} match{matchedProperties.length !== 1 ? 'es' : ''})
+          </span>
+        </h2>
+
+        {matchedProperties.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl px-6 py-10 text-center text-slate-400 text-sm">
+            No available properties match this buyer&apos;s requirements
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {matchedProperties.map(prop => {
+              const waText = encodeURIComponent(
+                `Hi, I have a property that might interest you!\n${prop.land_code} — ${prop.title}\nArea: ${prop.area} ${prop.area_unit}\nPrice: ${formatCurrency(prop.price)}\nType: ${prop.type}\nStatus: ${prop.status}`
+              )
+              return (
+                <div key={prop.id} className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono text-slate-400">{prop.land_code}</span>
+                    <Badge status={prop.status} />
+                  </div>
+                  <Link
+                    href={`/properties/${prop.id}`}
+                    className="block font-semibold text-blue-700 hover:underline text-sm leading-snug"
+                  >
+                    {prop.title}
+                  </Link>
+                  <div className="text-xs text-slate-500 space-y-0.5">
+                    <p>{prop.area} {prop.area_unit} · {prop.type}</p>
+                    <p className="font-semibold text-slate-800 text-sm">{formatCurrency(prop.price)}</p>
+                  </div>
+                  <a
+                    href={`https://wa.me/91${lead.whatsapp ?? lead.phone}?text=${waText}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium"
+                  >
+                    Share via WhatsApp
+                  </a>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* 4. Properties Visited */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-700">
           Properties Visited
@@ -369,9 +436,10 @@ export default async function BuyerLeadDetailPage(props: {
         )}
       </section>
 
-      {/* 4. Notes History */}
+      {/* 5. Notes History */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-700">Notes History</h2>
+        <QuickNoteForm leadId={lead.id} leadType="buyer" leadName={lead.name} />
 
         {!lead.notes_history || lead.notes_history.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl px-6 py-10 text-center text-slate-400 text-sm">

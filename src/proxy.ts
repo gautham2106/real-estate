@@ -11,8 +11,10 @@ export async function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
     pathname.startsWith('/favicon') ||
-    pathname === '/map'
+    pathname === '/map' ||
+    /^\/properties\/[^/]+\/share/.test(pathname)
   ) {
     return NextResponse.next()
   }

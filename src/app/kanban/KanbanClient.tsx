@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useTransition } from 'react'
+import { updateDealAction } from '@/app/actions/deals'
 import {
   DndContext,
   DragOverlay,
@@ -239,6 +240,7 @@ export default function KanbanClient({
   const [mobileColIdx, setMobileColIdx] = useState(0)
   const [statusModal, setStatusModal] = useState<Deal | null>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
+  const [, startTransition] = useTransition()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -307,6 +309,12 @@ export default function KanbanClient({
           d.id === activeItemId ? { ...d, status: targetStatus } : d,
         ),
       )
+      // Persist status change to DB
+      startTransition(() => {
+        const fd = new FormData()
+        fd.set('status', targetStatus)
+        updateDealAction(activeItemId, fd)
+      })
     }
   }
 

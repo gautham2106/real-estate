@@ -7,6 +7,7 @@ import Badge from '@/components/ui/Badge'
 import DeleteButton from '@/components/ui/DeleteButton'
 import ConvertToListingButton from '@/components/ui/ConvertToListingButton'
 import { deleteSellerLeadAction, convertSellerLeadToPropertyAction } from '@/app/actions/leads'
+import QuickNoteForm from '@/components/leads/QuickNoteForm'
 import type { SiteVisit, NoteEntry } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
@@ -284,6 +285,7 @@ export default async function SellerLeadDetailPage(props: {
       {/* 4. Notes History */}
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-slate-700">Notes History</h2>
+        <QuickNoteForm leadId={lead.id} leadType="seller" leadName={lead.owner_name} />
 
         {!lead.notes_history || lead.notes_history.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl px-6 py-10 text-center text-slate-400 text-sm">

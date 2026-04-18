@@ -12,6 +12,7 @@ import Badge from '@/components/ui/Badge'
 import DeleteButton from '@/components/ui/DeleteButton'
 import { deletePropertyAction } from '@/app/actions/properties'
 import PropertyLocationSection from '@/components/properties/PropertyLocationSection'
+import QuickEnquiryForm from '@/components/properties/QuickEnquiryForm'
 import type { SiteVisit, Deal } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
