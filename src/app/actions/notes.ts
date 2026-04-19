@@ -2,8 +2,14 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode } from '@/lib/dal'
+import type { NoteEntry } from '@/types'
 
-export async function addNoteAction(id: string, type: 'buyer' | 'seller', text: string) {
+export async function addNoteAction(
+  id: string,
+  type: 'buyer' | 'seller',
+  text: string,
+  interactionType?: string,
+) {
   if (!text.trim()) return { error: 'Note cannot be empty' }
   const table = type === 'buyer' ? 'buyer_leads' : 'seller_leads'
   const path = type === 'buyer' ? '/buyer-leads' : '/seller-leads'
@@ -15,8 +21,13 @@ export async function addNoteAction(id: string, type: 'buyer' | 'seller', text: 
 
   const supabase = await createClient()
   const { data: lead } = await supabase.from(table).select('notes_history').eq('id', id).single()
-  const existing = (lead?.notes_history ?? []) as Array<{ timestamp: string; author: string; text: string }>
-  const newNote = { timestamp: new Date().toISOString(), author: 'Admin', text }
+  const existing = (lead?.notes_history ?? []) as NoteEntry[]
+  const newNote: NoteEntry = {
+    timestamp: new Date().toISOString(),
+    author: 'Admin',
+    text,
+    ...(interactionType ? { interaction_type: interactionType } : {}),
+  }
   await supabase.from(table).update({ notes_history: [...existing, newNote] }).eq('id', id)
   revalidatePath(`${path}/${id}`)
   return { success: true }

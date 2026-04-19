@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
 import DeleteButton from '@/components/ui/DeleteButton'
 import { deleteBuyerLeadAction } from '@/app/actions/leads'
-import QuickNoteForm from '@/components/leads/QuickNoteForm'
+import QuickNoteForm, { INTERACTION_TYPE_COLORS } from '@/components/leads/QuickNoteForm'
 import type { SiteVisit, Deal, NoteEntry, Property } from '@/types'
 
 // ─── helpers ─────────────────────────────────────────────
@@ -118,8 +118,15 @@ function NoteCard({ note }: { note: NoteEntry }) {
       <div className="flex-shrink-0 w-24 text-right">
         <span className="text-xs text-slate-400">{formatDate(note.timestamp)}</span>
       </div>
-      <div className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 space-y-1 shadow-sm">
-        <p className="text-xs font-semibold text-slate-500">{note.author}</p>
+      <div className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 space-y-1.5 shadow-sm">
+        <div className="flex items-center gap-2 flex-wrap">
+          {note.interaction_type && (
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${INTERACTION_TYPE_COLORS[note.interaction_type] ?? 'bg-gray-100 text-gray-600'}`}>
+              {note.interaction_type}
+            </span>
+          )}
+          <p className="text-xs text-slate-400">{note.author}</p>
+        </div>
         <p className="text-sm text-slate-700">{note.text}</p>
       </div>
     </div>
@@ -228,6 +235,12 @@ export default async function BuyerLeadDetailPage(props: {
                 WhatsApp
               </a>
             )}
+            <Link
+              href={`/site-visits/new?buyer_id=${id}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
+            >
+              📍 Log Site Visit
+            </Link>
             <Link
               href={`/deals/new?buyer_id=${id}`}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
@@ -418,10 +431,18 @@ export default async function BuyerLeadDetailPage(props: {
 
       {/* 4. Properties Visited */}
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-slate-700">
-          Properties Visited
-          <span className="ml-2 text-xs font-normal text-slate-400">({visits.length} visit{visits.length !== 1 ? 's' : ''})</span>
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-slate-700">
+            Properties Visited
+            <span className="ml-2 text-xs font-normal text-slate-400">({visits.length} visit{visits.length !== 1 ? 's' : ''})</span>
+          </h2>
+          <Link
+            href={`/site-visits/new?buyer_id=${id}`}
+            className="text-xs text-amber-600 hover:text-amber-700 font-medium border border-amber-200 bg-amber-50 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            + Log New Visit
+          </Link>
+        </div>
 
         {visits.length === 0 ? (
           <div className="bg-white border border-slate-200 rounded-2xl px-6 py-10 text-center text-slate-400 text-sm">

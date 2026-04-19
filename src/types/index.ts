@@ -356,6 +356,7 @@ export interface NoteEntry {
   timestamp: string
   author: string
   text: string
+  interaction_type?: string
 }
 
 export interface DashboardMetrics {

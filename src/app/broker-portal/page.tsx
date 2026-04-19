@@ -5,7 +5,7 @@ import { getBrokers, getBuyerLeads, getSellerLeads, getDeals, getLeaderboard } f
 import { getUser } from '@/lib/auth'
 import type { BrokerTier, Broker } from '@/types'
 import {
-  UserPlus, Home, DollarSign, TrendingUp, ShieldAlert, Trophy, ChevronRight,
+  UserPlus, Home, DollarSign, TrendingUp, ShieldAlert, Trophy, ChevronRight, MapPin,
 } from 'lucide-react'
 
 const tierConfig: Record<BrokerTier, { next: BrokerTier | null; dealsNeeded: number; label: string }> = {
@@ -283,9 +283,10 @@ export default async function BrokerPortalPage() {
       {/* Quick Actions */}
       <div className="bg-white rounded-xl border border-slate-200 p-6">
         <h3 className="text-sm font-semibold text-slate-700 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <QuickAction href="/buyer-leads/new" icon={UserPlus} label="Add Buyer Lead" color="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100" />
           <QuickAction href="/seller-leads/new" icon={Home} label="Add Seller Lead" color="border-green-200 bg-green-50 text-green-700 hover:bg-green-100" />
+          <QuickAction href="/site-visits/new" icon={MapPin} label="Log Site Visit" color="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" />
           <QuickAction href="/commission" icon={DollarSign} label="Commission Calculator" color="border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100" />
         </div>
       </div>
