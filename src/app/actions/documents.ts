@@ -45,7 +45,11 @@ export async function uploadDocumentAction(formData: FormData) {
     file_size = file.size
   }
 
+  const { count } = await supabase.from('documents').select('*', { count: 'exact', head: true })
+  const document_id = `DOC-${String((count ?? 0) + 1).padStart(3, '0')}`
+
   const { error } = await supabase.from('documents').insert({
+    document_id,
     property_id: parsed.data.property_id,
     folder: parsed.data.folder,
     document_name: parsed.data.document_name,

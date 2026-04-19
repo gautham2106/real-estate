@@ -129,9 +129,9 @@ export type BuyerLeadStatus =
   | 'Converted'
   | 'Lost'
 
-export type Purpose = 'Investment' | 'Construction' | 'Agriculture'
+export type Purpose = 'Investment' | 'Construction' | 'Agriculture' | 'Residential'
 export type Urgency = 'Immediate' | '3 months' | '6 months'
-export type LeadSource = 'Instagram' | 'Facebook' | 'WhatsApp' | 'Referral' | 'Walk-in'
+export type LeadSource = 'Instagram' | 'Facebook' | 'WhatsApp' | 'Referral' | 'Walk-in' | 'Website' | 'Other'
 
 export interface BuyerLead {
   id: string
@@ -305,7 +305,7 @@ export interface PropertyDocument {
   status: DocumentStatus
   issue_notes?: string | null
   uploaded_by?: string | null
-  upload_date: string
+  uploaded_at: string
   verified_by?: string | null
   verified_date?: string | null
   created_at: string

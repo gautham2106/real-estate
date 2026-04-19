@@ -24,14 +24,26 @@ const dealSchema = z.object({
   buyer_broker_id: z.string().uuid().optional().or(z.literal('')),
   seller_broker_id: z.string().uuid().optional().or(z.literal('')),
   referral_broker_id: z.string().uuid().optional().or(z.literal('')),
+  co_sponsor_broker_1_id: z.string().uuid().optional().or(z.literal('')),
+  co_sponsor_broker_2_id: z.string().uuid().optional().or(z.literal('')),
+  tier1_override_broker_id: z.string().uuid().optional().or(z.literal('')),
+  tier2_override_broker_id: z.string().uuid().optional().or(z.literal('')),
   deal_value: z.coerce.number().positive(),
   buyer_commission_pct: z.coerce.number().default(2),
   seller_commission_pct: z.coerce.number().default(2),
   has_referral: z.coerce.boolean().optional(),
-  has_tier1: z.coerce.boolean().optional(),
-  has_tier2: z.coerce.boolean().optional(),
   token_amount: z.coerce.number().optional(),
   token_date: z.string().optional(),
+  advance_amount: z.coerce.number().optional(),
+  advance_date: z.string().optional(),
+  final_amount: z.coerce.number().optional(),
+  final_date: z.string().optional(),
+  mou_date: z.string().optional(),
+  registration_date: z.string().optional(),
+  loan_required: z.coerce.boolean().optional(),
+  loan_amount: z.coerce.number().optional(),
+  bank_name: z.string().optional(),
+  status: z.string().optional(),
   notes: z.string().optional(),
 })
 
@@ -49,9 +61,11 @@ export async function createDealAction(formData: FormData) {
     supabase.from('buyer_leads').select('name').eq('id', parsed.data.buyer_lead_id).single(),
   ])
   const deal_title = `${prop?.land_code ?? 'Property'} × ${buyer?.name ?? 'Buyer'}`
+  const hasTier1 = !!parsed.data.tier1_override_broker_id
+  const hasTier2 = !!parsed.data.tier2_override_broker_id
   const comm = calcCommission(
     parsed.data.deal_value, parsed.data.buyer_commission_pct, parsed.data.seller_commission_pct,
-    !!parsed.data.has_referral, !!parsed.data.has_tier1, !!parsed.data.has_tier2
+    !!parsed.data.has_referral, hasTier1, hasTier2
   )
   const { error } = await supabase.from('deals').insert({
     deal_id, deal_title,
@@ -61,6 +75,10 @@ export async function createDealAction(formData: FormData) {
     buyer_broker_id: parsed.data.buyer_broker_id || null,
     seller_broker_id: parsed.data.seller_broker_id || null,
     referral_broker_id: parsed.data.referral_broker_id || null,
+    co_sponsor_broker_1_id: parsed.data.co_sponsor_broker_1_id || null,
+    co_sponsor_broker_2_id: parsed.data.co_sponsor_broker_2_id || null,
+    tier1_override_broker_id: parsed.data.tier1_override_broker_id || null,
+    tier2_override_broker_id: parsed.data.tier2_override_broker_id || null,
     deal_value: parsed.data.deal_value,
     buyer_commission_pct: parsed.data.buyer_commission_pct,
     seller_commission_pct: parsed.data.seller_commission_pct,
@@ -71,9 +89,18 @@ export async function createDealAction(formData: FormData) {
     tier2_override_payout: comm.tier2OverridePayout,
     your_net: comm.yourNet,
     token_amount: parsed.data.token_amount ?? null,
-    token_date: parsed.data.token_date ?? null,
+    token_date: parsed.data.token_date || null,
+    advance_amount: parsed.data.advance_amount ?? null,
+    advance_date: parsed.data.advance_date || null,
+    final_amount: parsed.data.final_amount ?? null,
+    final_date: parsed.data.final_date || null,
+    mou_date: parsed.data.mou_date || null,
+    registration_date: parsed.data.registration_date || null,
+    loan_required: parsed.data.loan_required ?? false,
+    loan_amount: parsed.data.loan_amount ?? null,
+    bank_name: parsed.data.bank_name || null,
     notes: parsed.data.notes ?? null,
-    status: 'Created',
+    status: parsed.data.status ?? 'Created',
   })
   if (error) return { error: error.message }
   await logActivity('Deal Created', `Created deal ${deal_id}`)
@@ -101,9 +128,11 @@ export async function updateDealAction(id: string, formData: FormData) {
   if (isDemoMode) { revalidatePath('/deals'); return {} }
 
   const supabase = await createClient()
+  const hasTier1 = !!parsed.data.tier1_override_broker_id
+  const hasTier2 = !!parsed.data.tier2_override_broker_id
   const comm = calcCommission(
     parsed.data.deal_value, parsed.data.buyer_commission_pct, parsed.data.seller_commission_pct,
-    !!parsed.data.has_referral, !!parsed.data.has_tier1, !!parsed.data.has_tier2
+    !!parsed.data.has_referral, hasTier1, hasTier2
   )
   const [{ data: prop }, { data: buyer }] = await Promise.all([
     supabase.from('properties').select('land_code').eq('id', parsed.data.property_id).single(),
@@ -119,6 +148,10 @@ export async function updateDealAction(id: string, formData: FormData) {
     buyer_broker_id: parsed.data.buyer_broker_id || null,
     seller_broker_id: parsed.data.seller_broker_id || null,
     referral_broker_id: parsed.data.referral_broker_id || null,
+    co_sponsor_broker_1_id: parsed.data.co_sponsor_broker_1_id || null,
+    co_sponsor_broker_2_id: parsed.data.co_sponsor_broker_2_id || null,
+    tier1_override_broker_id: parsed.data.tier1_override_broker_id || null,
+    tier2_override_broker_id: parsed.data.tier2_override_broker_id || null,
     deal_value: parsed.data.deal_value,
     buyer_commission_pct: parsed.data.buyer_commission_pct,
     seller_commission_pct: parsed.data.seller_commission_pct,
@@ -129,8 +162,18 @@ export async function updateDealAction(id: string, formData: FormData) {
     tier2_override_payout: comm.tier2OverridePayout,
     your_net: comm.yourNet,
     token_amount: parsed.data.token_amount ?? null,
-    token_date: parsed.data.token_date ?? null,
+    token_date: parsed.data.token_date || null,
+    advance_amount: parsed.data.advance_amount ?? null,
+    advance_date: parsed.data.advance_date || null,
+    final_amount: parsed.data.final_amount ?? null,
+    final_date: parsed.data.final_date || null,
+    mou_date: parsed.data.mou_date || null,
+    registration_date: parsed.data.registration_date || null,
+    loan_required: parsed.data.loan_required ?? false,
+    loan_amount: parsed.data.loan_amount ?? null,
+    bank_name: parsed.data.bank_name || null,
     notes: parsed.data.notes ?? null,
+    ...(parsed.data.status ? { status: parsed.data.status } : {}),
   }).eq('id', id)
   if (error) return { error: error.message }
   await logActivity('Deal Updated', `Updated deal ${id}`)

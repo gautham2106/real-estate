@@ -16,7 +16,7 @@ const buyerLeadSchema = z.object({
   preferred_location: z.string().optional(),
   property_type_needed: z.string().optional(),
   area_required: z.string().optional(),
-  purpose: z.enum(['Investment', 'Construction', 'Agriculture']).optional(),
+  purpose: z.enum(['Investment', 'Construction', 'Agriculture', 'Residential']).optional(),
   loan_required: z.coerce.boolean().optional(),
   loan_amount: z.coerce.number().optional(),
   urgency: z.enum(['Immediate', '3 months', '6 months']).optional(),
