@@ -3,19 +3,23 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Save } from 'lucide-react'
-import { mockProperties, mockBuyerLeads, mockBrokers } from '@/lib/mock-data'
+import BrokerLeadSelect from '@/components/ui/BrokerLeadSelect'
+import type { Broker, BuyerLead, Property } from '@/types'
 
 interface Props {
+  brokers: Broker[]
+  buyerLeads: BuyerLead[]
+  properties: Property[]
   initialBuyerId?: string
   initialPropertyId?: string
+  initialBrokerId?: string
 }
 
-export default function NewSiteVisitForm({ initialBuyerId, initialPropertyId }: Props) {
+export default function NewSiteVisitForm({ brokers, buyerLeads, properties, initialBuyerId, initialPropertyId, initialBrokerId }: Props) {
   const [form, setForm] = useState({
     property_id: initialPropertyId ?? '',
-    buyer_id: initialBuyerId ?? '',
     visit_date: '', visit_time: '',
-    broker_id: '', buyer_reaction: '', buyer_remarks: '', owner_remarks: '',
+    buyer_reaction: '', buyer_remarks: '', owner_remarks: '',
     price_discussed: '', objections: '', internal_note: '',
     next_action: '', next_action_date: '',
   })
@@ -37,14 +41,18 @@ export default function NewSiteVisitForm({ initialBuyerId, initialPropertyId }: 
     }
   }
 
-  const preFillBuyer = initialBuyerId
-    ? mockBuyerLeads.find(b => b.id === initialBuyerId)
-    : null
-  const preFillProperty = initialPropertyId
-    ? mockProperties.find(p => p.id === initialPropertyId)
-    : null
-
   const inputCls = 'w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+
+  const preFillBuyer = initialBuyerId ? buyerLeads.find(b => b.id === initialBuyerId) : null
+  const preFillProperty = initialPropertyId ? properties.find(p => p.id === initialPropertyId) : null
+
+  const buyerLeadOptions = buyerLeads.map(l => ({
+    id: l.id,
+    lead_id: l.lead_id,
+    label: l.name,
+    ownerId: l.added_by_broker_id,
+  }))
+  const brokerOptions = brokers.map(b => ({ id: b.id, broker_id: b.broker_id, name: b.name }))
 
   return (
     <div className="space-y-6 max-w-screen-md">
@@ -58,7 +66,6 @@ export default function NewSiteVisitForm({ initialBuyerId, initialPropertyId }: 
         </div>
       </div>
 
-      {/* Pre-fill banner */}
       {(preFillBuyer || preFillProperty) && (
         <div className="flex flex-wrap gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 text-sm text-amber-800">
           <span className="font-medium">Pre-filled:</span>
@@ -72,25 +79,35 @@ export default function NewSiteVisitForm({ initialBuyerId, initialPropertyId }: 
         <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-5">
           <h3 className="font-semibold text-slate-700 border-b border-slate-100 pb-2">Visit Details</h3>
 
+          {/* Property */}
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Property *</label>
+            <select required name="property_id" value={form.property_id} onChange={e => set('property_id', e.target.value)} className={inputCls}>
+              <option value="">Select property…</option>
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>{p.land_code} — {p.title}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Broker → Buyer cascading */}
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-slate-600 mb-2">Broker & Buyer *</p>
+            <p className="text-xs text-slate-400 mb-3">Select the broker who arranged this visit — then pick their buyer.</p>
+            <BrokerLeadSelect
+              brokers={brokerOptions}
+              leads={buyerLeadOptions}
+              brokerFieldName="broker_id"
+              leadFieldName="buyer_id"
+              brokerLabel="Broker Arranged"
+              leadLabel="Buyer"
+              required
+              defaultBrokerId={initialBrokerId}
+              defaultLeadId={initialBuyerId}
+            />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Property *</label>
-              <select required name="property_id" value={form.property_id} onChange={e => set('property_id', e.target.value)} className={inputCls}>
-                <option value="">Select property…</option>
-                {mockProperties.map(p => (
-                  <option key={p.id} value={p.id}>{p.land_code} — {p.title}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Buyer *</label>
-              <select required name="buyer_id" value={form.buyer_id} onChange={e => set('buyer_id', e.target.value)} className={inputCls}>
-                <option value="">Select buyer…</option>
-                {mockBuyerLeads.map(b => (
-                  <option key={b.id} value={b.id}>{b.lead_id} — {b.name}</option>
-                ))}
-              </select>
-            </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Visit Date *</label>
               <input type="date" required name="visit_date" value={form.visit_date} onChange={e => set('visit_date', e.target.value)} className={inputCls} />
@@ -98,15 +115,6 @@ export default function NewSiteVisitForm({ initialBuyerId, initialPropertyId }: 
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Visit Time</label>
               <input type="time" name="visit_time" value={form.visit_time} onChange={e => set('visit_time', e.target.value)} className={inputCls} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Broker Arranged</label>
-              <select name="broker_id" value={form.broker_id} onChange={e => set('broker_id', e.target.value)} className={inputCls}>
-                <option value="">Select broker…</option>
-                {mockBrokers.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Buyer Reaction</label>
@@ -119,42 +127,31 @@ export default function NewSiteVisitForm({ initialBuyerId, initialPropertyId }: 
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Price Discussed (₹)</label>
-              <input type="number" name="price_discussed" value={form.price_discussed} onChange={e => set('price_discussed', e.target.value)}
-                placeholder="e.g. 1750000" className={inputCls} />
+              <input type="number" name="price_discussed" value={form.price_discussed} onChange={e => set('price_discussed', e.target.value)} placeholder="e.g. 1750000" className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Objections</label>
-              <input type="text" name="objections" value={form.objections} onChange={e => set('objections', e.target.value)}
-                placeholder="Any concerns raised…" className={inputCls} />
+              <input type="text" name="objections" value={form.objections} onChange={e => set('objections', e.target.value)} placeholder="Any concerns raised…" className={inputCls} />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Buyer Remarks</label>
-            <textarea rows={2} name="buyer_remarks" value={form.buyer_remarks} onChange={e => set('buyer_remarks', e.target.value)}
-              placeholder="What the buyer said about the property…"
-              className={inputCls + ' resize-none'} />
+            <textarea rows={2} name="buyer_remarks" value={form.buyer_remarks} onChange={e => set('buyer_remarks', e.target.value)} placeholder="What the buyer said about the property…" className={inputCls + ' resize-none'} />
           </div>
-
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Owner Remarks</label>
-            <textarea rows={2} name="owner_remarks" value={form.owner_remarks} onChange={e => set('owner_remarks', e.target.value)}
-              placeholder="Owner's response / flexibility…"
-              className={inputCls + ' resize-none'} />
+            <textarea rows={2} name="owner_remarks" value={form.owner_remarks} onChange={e => set('owner_remarks', e.target.value)} placeholder="Owner's response / flexibility…" className={inputCls + ' resize-none'} />
           </div>
-
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Internal Note <span className="text-slate-400 font-normal">(admin only)</span></label>
-            <textarea rows={2} name="internal_note" value={form.internal_note} onChange={e => set('internal_note', e.target.value)}
-              placeholder="Admin-only observation…"
-              className={inputCls + ' resize-none'} />
+            <textarea rows={2} name="internal_note" value={form.internal_note} onChange={e => set('internal_note', e.target.value)} placeholder="Admin-only observation…" className={inputCls + ' resize-none'} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Next Action</label>
-              <input type="text" name="next_action" value={form.next_action} onChange={e => set('next_action', e.target.value)}
-                placeholder="e.g. Negotiate price" className={inputCls} />
+              <input type="text" name="next_action" value={form.next_action} onChange={e => set('next_action', e.target.value)} placeholder="e.g. Negotiate price" className={inputCls} />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600 mb-1">Next Action Date</label>
@@ -168,8 +165,7 @@ export default function NewSiteVisitForm({ initialBuyerId, initialPropertyId }: 
         )}
 
         <div className="flex gap-3">
-          <button type="submit" disabled={submitting}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60">
+          <button type="submit" disabled={submitting} className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-60">
             <Save size={15} />
             {submitting ? 'Saving…' : 'Save Visit'}
           </button>

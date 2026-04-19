@@ -230,20 +230,10 @@ export default function NewSellerLeadPage() {
                 <option>Other</option>
               </select>
             </Field>
-            <Field label="Assigned To">
-              <select
-                name="assigned_to"
-                className={selectCls}
-                value={form.assigned_to}
-                onChange={(e) => set('assigned_to', e.target.value)}
-              >
-                <option value="">— Select Broker —</option>
-                {mockBrokers.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
+            <Field label="Owner Broker">
+              <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+                Auto-assigned to you when saved. Permanent — cannot be changed later.
+              </p>
             </Field>
             <Field label="Follow Up Date">
               <input

@@ -4,8 +4,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft, Calculator } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { mockProperties, mockBuyerLeads, mockSellerLeads, mockBrokers } from '@/lib/mock-data'
-import type { DealStatus } from '@/types'
+import BrokerLeadSelect from '@/components/ui/BrokerLeadSelect'
+import type { Broker, BuyerLead, SellerLead, Property, DealStatus } from '@/types'
 
 const dealStatuses: DealStatus[] = [
   'Created', 'Site Visit Done', 'Negotiation Active', 'Token Paid', 'MOU Signed',
@@ -35,12 +35,17 @@ function FormField({ label, required, children }: { label: string; required?: bo
 
 const inputCls = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white'
 
+interface Props {
+  brokers: Broker[]
+  buyerLeads: BuyerLead[]
+  sellerLeads: SellerLead[]
+  properties: Property[]
+  defaultBuyerId?: string
+  defaultBuyerBrokerId?: string
+}
+
 interface FormState {
   property_id: string
-  buyer_lead_id: string
-  seller_lead_id: string
-  buyer_broker_id: string
-  seller_broker_id: string
   referral_enabled: boolean
   referral_broker_id: string
   co_sponsor_broker_1_id: string
@@ -65,22 +70,16 @@ interface FormState {
   notes: string
 }
 
-const brokerFields: { label: string; key: keyof FormState }[] = [
-  { label: 'Buyer Broker', key: 'buyer_broker_id' },
-  { label: 'Seller Broker', key: 'seller_broker_id' },
-  { label: 'Co-Sponsor 1', key: 'co_sponsor_broker_1_id' },
-  { label: 'Co-Sponsor 2', key: 'co_sponsor_broker_2_id' },
-  { label: 'Tier 1 Override', key: 'tier1_override_broker_id' },
-  { label: 'Tier 2 Override', key: 'tier2_override_broker_id' },
-]
-
-export default function NewDealForm({ defaultBuyerId }: { defaultBuyerId?: string }) {
+export default function NewDealForm({
+  brokers,
+  buyerLeads,
+  sellerLeads,
+  properties,
+  defaultBuyerId,
+  defaultBuyerBrokerId,
+}: Props) {
   const [form, setForm] = useState<FormState>({
     property_id: '',
-    buyer_lead_id: defaultBuyerId ?? '',
-    seller_lead_id: '',
-    buyer_broker_id: '',
-    seller_broker_id: '',
     referral_enabled: false,
     referral_broker_id: '',
     co_sponsor_broker_1_id: '',
@@ -109,13 +108,12 @@ export default function NewDealForm({ defaultBuyerId }: { defaultBuyerId?: strin
 
   const set = (k: keyof FormState, v: string | boolean) => setForm(f => ({ ...f, [k]: v }))
 
-  // Derived commission calculations — no useState needed
+  // Commission preview
   const dv = parseFloat(form.deal_value) || 0
   const bcp = parseFloat(form.buyer_commission_pct) || 0
   const scp = parseFloat(form.seller_commission_pct) || 0
   const hasTier1 = !!form.tier1_override_broker_id
   const hasTier2 = !!form.tier2_override_broker_id
-
   const totalCommission = dv * (bcp + scp) / 100
   const buyerBrokerPayout = dv * 0.0125
   const sellerBrokerPayout = dv * 0.0125
@@ -138,6 +136,22 @@ export default function NewDealForm({ defaultBuyerId }: { defaultBuyerId?: strin
     }
   }
 
+  // Build lead options for the cascading selects
+  const buyerLeadOptions = buyerLeads.map(l => ({
+    id: l.id,
+    lead_id: l.lead_id,
+    label: l.name,
+    ownerId: l.added_by_broker_id,
+  }))
+  const sellerLeadOptions = sellerLeads.map(l => ({
+    id: l.id,
+    lead_id: l.lead_id,
+    label: l.owner_name,
+    ownerId: l.added_by_broker_id,
+  }))
+
+  const brokerOptions = brokers.map(b => ({ id: b.id, broker_id: b.broker_id, name: b.name }))
+
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-3">
@@ -150,52 +164,55 @@ export default function NewDealForm({ defaultBuyerId }: { defaultBuyerId?: strin
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ── Identity ──────────────────────────────────────── */}
+        {/* ── Property ────────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <SectionTitle>Identity</SectionTitle>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField label="Linked Property" required>
-              <select name="property_id" value={form.property_id} onChange={e => set('property_id', e.target.value)} className={inputCls}>
-                <option value="">— Select Property —</option>
-                {mockProperties.map(p => (
-                  <option key={p.id} value={p.id}>{p.land_code} — {p.title}</option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label="Linked Buyer Lead">
-              <select name="buyer_lead_id" value={form.buyer_lead_id} onChange={e => set('buyer_lead_id', e.target.value)} className={inputCls}>
-                <option value="">— Select Buyer Lead —</option>
-                {mockBuyerLeads.map(l => (
-                  <option key={l.id} value={l.id}>{l.lead_id} — {l.name}</option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label="Linked Seller Lead">
-              <select name="seller_lead_id" value={form.seller_lead_id} onChange={e => set('seller_lead_id', e.target.value)} className={inputCls}>
-                <option value="">— Select Seller Lead —</option>
-                {mockSellerLeads.map(l => (
-                  <option key={l.id} value={l.id}>{l.lead_id} — {l.owner_name}</option>
-                ))}
-              </select>
-            </FormField>
-          </div>
+          <SectionTitle>Property</SectionTitle>
+          <FormField label="Linked Property" required>
+            <select name="property_id" value={form.property_id} onChange={e => set('property_id', e.target.value)} className={inputCls} required>
+              <option value="">— Select Property —</option>
+              {properties.map(p => (
+                <option key={p.id} value={p.id}>{p.land_code} — {p.title}</option>
+              ))}
+            </select>
+          </FormField>
         </div>
 
-        {/* ── Brokers ────────────────────────────────────────── */}
+        {/* ── Buyer Side ───────────────────────────────────── */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
-          <SectionTitle>Brokers</SectionTitle>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {brokerFields.map(({ label, key }) => (
-              <FormField key={key} label={label}>
-                <select name={key} value={form[key] as string} onChange={e => set(key, e.target.value)} className={inputCls}>
-                  <option value="">— None —</option>
-                  {mockBrokers.map(b => (
-                    <option key={b.id} value={b.id}>{b.broker_id} — {b.name}</option>
-                  ))}
-                </select>
-              </FormField>
-            ))}
+          <SectionTitle>Buyer Side</SectionTitle>
+          <p className="text-xs text-slate-500 mb-4">Select the broker first — only their buyer leads will appear.</p>
+          <BrokerLeadSelect
+            brokers={brokerOptions}
+            leads={buyerLeadOptions}
+            brokerFieldName="buyer_broker_id"
+            leadFieldName="buyer_lead_id"
+            brokerLabel="Buyer Broker"
+            leadLabel="Buyer Lead"
+            required
+            defaultBrokerId={defaultBuyerBrokerId}
+            defaultLeadId={defaultBuyerId}
+          />
+        </div>
 
+        {/* ── Seller Side ──────────────────────────────────── */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <SectionTitle>Seller Side</SectionTitle>
+          <p className="text-xs text-slate-500 mb-4">Select the broker first — only their seller leads will appear.</p>
+          <BrokerLeadSelect
+            brokers={brokerOptions}
+            leads={sellerLeadOptions}
+            brokerFieldName="seller_broker_id"
+            leadFieldName="seller_lead_id"
+            brokerLabel="Seller Broker"
+            leadLabel="Seller Lead"
+          />
+        </div>
+
+        {/* ── Other Brokers ────────────────────────────────── */}
+        <div className="bg-white rounded-xl border border-slate-200 p-6">
+          <SectionTitle>Other Brokers</SectionTitle>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Referral */}
             <div className="md:col-span-2">
               <FormField label="Referral Broker">
                 <div className="flex items-center gap-3">
@@ -210,14 +227,26 @@ export default function NewDealForm({ defaultBuyerId }: { defaultBuyerId?: strin
                   {form.referral_enabled && (
                     <select name="referral_broker_id" value={form.referral_broker_id} onChange={e => set('referral_broker_id', e.target.value)} className={`${inputCls} flex-1`}>
                       <option value="">— Select Referral Broker —</option>
-                      {mockBrokers.map(b => (
-                        <option key={b.id} value={b.id}>{b.broker_id} — {b.name}</option>
-                      ))}
+                      {brokers.map(b => <option key={b.id} value={b.id}>{b.broker_id} — {b.name}</option>)}
                     </select>
                   )}
                 </div>
               </FormField>
             </div>
+
+            {[
+              { label: 'Co-Sponsor 1', key: 'co_sponsor_broker_1_id' },
+              { label: 'Co-Sponsor 2', key: 'co_sponsor_broker_2_id' },
+              { label: 'Tier 1 Override', key: 'tier1_override_broker_id' },
+              { label: 'Tier 2 Override', key: 'tier2_override_broker_id' },
+            ].map(({ label, key }) => (
+              <FormField key={key} label={label}>
+                <select name={key} value={form[key as keyof FormState] as string} onChange={e => set(key as keyof FormState, e.target.value)} className={inputCls}>
+                  <option value="">— None —</option>
+                  {brokers.map(b => <option key={b.id} value={b.id}>{b.broker_id} — {b.name}</option>)}
+                </select>
+              </FormField>
+            ))}
           </div>
         </div>
 
@@ -226,7 +255,7 @@ export default function NewDealForm({ defaultBuyerId }: { defaultBuyerId?: strin
           <SectionTitle>Financials</SectionTitle>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <FormField label="Deal Value (₹)" required>
-              <input name="deal_value" type="number" value={form.deal_value} onChange={e => set('deal_value', e.target.value)} placeholder="e.g. 1750000" className={inputCls} />
+              <input name="deal_value" type="number" value={form.deal_value} onChange={e => set('deal_value', e.target.value)} placeholder="e.g. 1750000" className={inputCls} required />
             </FormField>
             <FormField label="Buyer Commission %">
               <input name="buyer_commission_pct" type="number" step="0.1" value={form.buyer_commission_pct} onChange={e => set('buyer_commission_pct', e.target.value)} className={inputCls} />
@@ -252,10 +281,7 @@ export default function NewDealForm({ defaultBuyerId }: { defaultBuyerId?: strin
                 { label: 'Tier 2 Override (0.05%)', value: tier2Payout, muted: !hasTier2 },
                 { label: 'Your Net', value: yourNet, net: true },
               ].map(({ label, value, highlight, net, muted }) => (
-                <div
-                  key={label}
-                  className={`rounded-lg p-3 ${net ? 'bg-green-50 border border-green-200 col-span-2 md:col-span-1' : highlight ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-slate-200'} ${muted ? 'opacity-40' : ''}`}
-                >
+                <div key={label} className={`rounded-lg p-3 ${net ? 'bg-green-50 border border-green-200 col-span-2 md:col-span-1' : highlight ? 'bg-blue-50 border border-blue-200' : 'bg-white border border-slate-200'} ${muted ? 'opacity-40' : ''}`}>
                   <p className="text-xs text-slate-500 mb-1">{label}</p>
                   <p className={`text-sm font-bold ${net ? 'text-green-700' : highlight ? 'text-blue-700' : 'text-slate-800'}`}>
                     {dv > 0 ? formatCurrency(value) : '—'}
