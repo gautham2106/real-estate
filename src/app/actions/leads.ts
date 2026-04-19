@@ -20,9 +20,10 @@ const buyerLeadSchema = z.object({
   loan_required: z.coerce.boolean().optional(),
   loan_amount: z.coerce.number().optional(),
   urgency: z.enum(['Immediate', '3 months', '6 months']).optional(),
-  source: z.string().optional(),
+  source: z.enum(['Instagram', 'Facebook', 'WhatsApp', 'Referral', 'Walk-in', 'Website', 'Other']).optional(),
+  assigned_to: z.string().uuid().optional().or(z.literal('')),
   follow_up_date: z.string().optional(),
-  notes_history: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 const sellerLeadSchema = z.object({
@@ -32,11 +33,13 @@ const sellerLeadSchema = z.object({
   property_location: z.string().min(1),
   approximate_area: z.string().optional(),
   asking_price: z.coerce.number().optional(),
-  property_type: z.string().optional(),
+  property_type: z.enum(['Plot', 'House', 'Farm', 'Commercial']).optional(),
   reason_for_selling: z.string().optional(),
   document_status: z.string().optional(),
-  source: z.string().optional(),
+  source: z.enum(['Instagram', 'Facebook', 'WhatsApp', 'Referral', 'Walk-in', 'Website', 'Other']).optional(),
+  assigned_to: z.string().uuid().optional().or(z.literal('')),
   follow_up_date: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 async function generateLeadId(supabase: Awaited<ReturnType<typeof createClient>>, table: string, prefix: string) {
@@ -51,7 +54,17 @@ export async function createBuyerLeadAction(formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   const lead_id = await generateLeadId(supabase, 'buyer_leads', 'BL')
-  const { error } = await supabase.from('buyer_leads').insert({ ...parsed.data, lead_id, added_at: new Date().toISOString() })
+  const { notes, assigned_to, ...rest } = parsed.data
+  const notes_history = notes?.trim()
+    ? [{ timestamp: new Date().toISOString(), author: 'Admin', text: notes.trim() }]
+    : []
+  const { error } = await supabase.from('buyer_leads').insert({
+    ...rest,
+    lead_id,
+    added_at: new Date().toISOString(),
+    notes_history,
+    assigned_to: assigned_to || null,
+  })
   if (error) return { error: error.message }
   await logActivity('Buyer Lead Created', `Added buyer lead ${lead_id}`)
   revalidatePath('/buyer-leads')
@@ -64,7 +77,11 @@ export async function updateBuyerLeadAction(id: string, formData: FormData) {
   const parsed = buyerLeadSchema.partial().safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  const { error } = await supabase.from('buyer_leads').update(parsed.data).eq('id', id)
+  const { notes: _notes, ...updateData } = parsed.data
+  const { error } = await supabase.from('buyer_leads').update({
+    ...updateData,
+    assigned_to: updateData.assigned_to || null,
+  }).eq('id', id)
   if (error) return { error: error.message }
   await logActivity('Buyer Lead Updated', `Updated buyer lead ${id}`)
   revalidatePath('/buyer-leads')
@@ -89,7 +106,17 @@ export async function createSellerLeadAction(formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
   const lead_id = await generateLeadId(supabase, 'seller_leads', 'SL')
-  const { error } = await supabase.from('seller_leads').insert({ ...parsed.data, lead_id, added_at: new Date().toISOString() })
+  const { notes, assigned_to, ...rest } = parsed.data
+  const notes_history = notes?.trim()
+    ? [{ timestamp: new Date().toISOString(), author: 'Admin', text: notes.trim() }]
+    : []
+  const { error } = await supabase.from('seller_leads').insert({
+    ...rest,
+    lead_id,
+    added_at: new Date().toISOString(),
+    notes_history,
+    assigned_to: assigned_to || null,
+  })
   if (error) return { error: error.message }
   await logActivity('Seller Lead Created', `Added seller lead ${lead_id}`)
   revalidatePath('/seller-leads')
@@ -102,7 +129,11 @@ export async function updateSellerLeadAction(id: string, formData: FormData) {
   const parsed = sellerLeadSchema.partial().safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  const { error } = await supabase.from('seller_leads').update(parsed.data).eq('id', id)
+  const { notes: _notes, ...updateData } = parsed.data
+  const { error } = await supabase.from('seller_leads').update({
+    ...updateData,
+    assigned_to: updateData.assigned_to || null,
+  }).eq('id', id)
   if (error) return { error: error.message }
   await logActivity('Seller Lead Updated', `Updated seller lead ${id}`)
   revalidatePath('/seller-leads')

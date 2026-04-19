@@ -224,6 +224,7 @@ export default function NewBuyerLeadPage() {
                 <option>Investment</option>
                 <option>Construction</option>
                 <option>Agriculture</option>
+                <option>Residential</option>
               </select>
             </Field>
           </div>
@@ -289,6 +290,8 @@ export default function NewBuyerLeadPage() {
                 <option>WhatsApp</option>
                 <option>Referral</option>
                 <option>Walk-in</option>
+                <option>Website</option>
+                <option>Other</option>
               </select>
             </Field>
             <Field label="Assigned To">
@@ -300,7 +303,7 @@ export default function NewBuyerLeadPage() {
               >
                 <option value="">— Select Broker —</option>
                 {mockBrokers.map((b) => (
-                  <option key={b.broker_id} value={b.broker_id}>
+                  <option key={b.id} value={b.id}>
                     {b.name}
                   </option>
                 ))}
@@ -318,7 +321,7 @@ export default function NewBuyerLeadPage() {
             <div className="sm:col-span-2">
               <Field label="Notes">
                 <textarea
-                  name="notes_history"
+                  name="notes"
                   className={inputCls + ' resize-none'}
                   rows={3}
                   value={form.notes}

@@ -10,7 +10,7 @@ const brokerSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   phone: z.string().min(10, 'Phone required'),
   whatsapp: z.string().optional(),
-  email: z.string().email().optional().or(z.literal('')),
+  email: z.string().email('Valid email is required'),
   area_coverage: z.string().optional(),
   recruited_by_id: z.string().optional(),
   co_sponsor_1_id: z.string().optional(),

@@ -224,7 +224,7 @@ export default function NewSellerLeadPage() {
                 <option>WhatsApp</option>
                 <option>Referral</option>
                 <option>Walk-in</option>
-                <option>Broker</option>
+                <option>Website</option>
                 <option>Other</option>
               </select>
             </Field>
@@ -237,7 +237,7 @@ export default function NewSellerLeadPage() {
               >
                 <option value="">— Select Broker —</option>
                 {mockBrokers.map((b) => (
-                  <option key={b.broker_id} value={b.broker_id}>
+                  <option key={b.id} value={b.id}>
                     {b.name}
                   </option>
                 ))}
