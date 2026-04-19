@@ -44,7 +44,7 @@ function formatDate(dateStr: string): string {
 
 // ─── Sub-components ────────────────────────────────────────
 
-function VisitCard({ visit }: { visit: SiteVisit }) {
+function VisitCard({ visit, isAdmin }: { visit: SiteVisit; isAdmin: boolean }) {
   return (
     <div className="flex gap-4">
       {/* Left: date pill */}
@@ -91,7 +91,7 @@ function VisitCard({ visit }: { visit: SiteVisit }) {
           </blockquote>
         )}
 
-        {visit.internal_note && (
+        {isAdmin && visit.internal_note && (
           <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-800">
             <span className="font-semibold">Internal note: </span>{visit.internal_note}
           </div>
@@ -359,7 +359,7 @@ export default function PropertyDetailTabs({
               </div>
             ) : (
               visits.map(visit => (
-                <VisitCard key={visit.id} visit={visit} />
+                <VisitCard key={visit.id} visit={visit} isAdmin={isAdmin} />
               ))
             )}
           </div>

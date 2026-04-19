@@ -68,3 +68,16 @@ export async function isBroker(): Promise<boolean> {
   const role = await getUserRole()
   return role === 'broker'
 }
+
+export async function getCurrentBrokerId(): Promise<string | null> {
+  if (isDemoMode) return null
+  const user = await getUser()
+  if (!user?.email) return null
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('brokers')
+    .select('id')
+    .eq('email', user.email)
+    .single()
+  return data?.id ?? null
+}

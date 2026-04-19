@@ -68,15 +68,17 @@ export async function getPropertyStats() {
 
 // ─── SELLER LEADS ─────────────────────────────────────────
 
-export async function getSellerLeads(filters?: { status?: string }): Promise<SellerLead[]> {
+export async function getSellerLeads(filters?: { status?: string; brokerId?: string }): Promise<SellerLead[]> {
   if (isDemoMode) {
     let data = mockSellerLeads
     if (filters?.status) data = data.filter(l => l.status === filters.status)
+    if (filters?.brokerId) data = data.filter(l => l.added_by_broker_id === filters.brokerId)
     return data
   }
   const supabase = await createClient()
   let query = supabase.from('seller_leads').select('*').order('created_at', { ascending: false })
   if (filters?.status) query = query.eq('status', filters.status)
+  if (filters?.brokerId) query = query.eq('added_by_broker_id', filters.brokerId)
   const { data, error } = await query
   if (error) throw error
   return (data ?? []) as SellerLead[]
@@ -84,15 +86,17 @@ export async function getSellerLeads(filters?: { status?: string }): Promise<Sel
 
 // ─── BUYER LEADS ──────────────────────────────────────────
 
-export async function getBuyerLeads(filters?: { status?: string }): Promise<BuyerLead[]> {
+export async function getBuyerLeads(filters?: { status?: string; brokerId?: string }): Promise<BuyerLead[]> {
   if (isDemoMode) {
     let data = mockBuyerLeads
     if (filters?.status) data = data.filter(l => l.status === filters.status)
+    if (filters?.brokerId) data = data.filter(l => l.added_by_broker_id === filters.brokerId)
     return data
   }
   const supabase = await createClient()
   let query = supabase.from('buyer_leads').select('*').order('created_at', { ascending: false })
   if (filters?.status) query = query.eq('status', filters.status)
+  if (filters?.brokerId) query = query.eq('added_by_broker_id', filters.brokerId)
   const { data, error } = await query
   if (error) throw error
   return (data ?? []) as BuyerLead[]
@@ -194,15 +198,28 @@ export async function getSellerLeadById(id: string): Promise<SellerLead | null> 
 
 // ─── DEALS ────────────────────────────────────────────────
 
-export async function getDeals(filters?: { status?: string }): Promise<Deal[]> {
+export async function getDeals(filters?: { status?: string; brokerId?: string }): Promise<Deal[]> {
   if (isDemoMode) {
     let data = mockDeals
     if (filters?.status) data = data.filter(d => d.status === filters.status)
+    if (filters?.brokerId) data = data.filter(d =>
+      d.buyer_broker_id === filters.brokerId ||
+      d.seller_broker_id === filters.brokerId ||
+      d.referral_broker_id === filters.brokerId ||
+      d.co_sponsor_broker_1_id === filters.brokerId ||
+      d.co_sponsor_broker_2_id === filters.brokerId
+    )
     return data
   }
   const supabase = await createClient()
   let query = supabase.from('deals').select('*').order('created_at', { ascending: false })
   if (filters?.status) query = query.eq('status', filters.status)
+  if (filters?.brokerId) {
+    const b = filters.brokerId
+    query = query.or(
+      `buyer_broker_id.eq.${b},seller_broker_id.eq.${b},referral_broker_id.eq.${b},co_sponsor_broker_1_id.eq.${b},co_sponsor_broker_2_id.eq.${b}`
+    )
+  }
   const { data, error } = await query
   if (error) throw error
   return (data ?? []) as Deal[]

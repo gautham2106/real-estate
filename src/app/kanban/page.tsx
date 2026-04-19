@@ -1,3 +1,4 @@
+import { getUserRole, getCurrentBrokerId } from '@/lib/auth'
 import { getDeals, getProperties, getBrokers, getBuyerLeads } from '@/lib/dal'
 import KanbanClient from './KanbanClient'
 import type { Deal, DealStatus } from '@/types'
@@ -25,12 +26,15 @@ function spreadDealsAcrossStages(deals: Deal[]): Deal[] {
 }
 
 export default async function KanbanPage() {
-  const [deals, properties, brokers, buyerLeads] = await Promise.all([
-    getDeals(),
+  const [role, brokerId, properties, brokers, buyerLeads] = await Promise.all([
+    getUserRole(),
+    getCurrentBrokerId(),
     getProperties(),
     getBrokers(),
     getBuyerLeads(),
   ])
+  const isBroker = role === 'broker'
+  const deals = await getDeals(isBroker && brokerId ? { brokerId } : undefined)
 
   const initialDeals = spreadDealsAcrossStages(deals)
   const propertyMap = Object.fromEntries(properties.map((p) => [p.id, { land_code: p.land_code }]))
