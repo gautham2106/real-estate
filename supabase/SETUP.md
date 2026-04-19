@@ -29,33 +29,46 @@ In Supabase Dashboard → **SQL Editor**, run the files in this order:
 Copy and run `supabase/schema.sql`
 
 This creates:
-- `brokers`, `books`, `properties`, `seller_leads`, `buyer_leads`
-- `site_visits`, `deals`, `documents`, `alerts`, `activity_log`
-- Sequences for auto-IDs (`BLU-2026-001`, `BRK-001`, etc.)
-- Trigger for `updated_at` on properties
-- Sample seed data (5 demo brokers)
+- All 10 tables: `brokers`, `books`, `properties`, `seller_leads`, `buyer_leads`, `site_visits`, `deals`, `documents`, `alerts`, `activity_log`
+- Sequences for auto-IDs (`BLU-YYYY-NNN`, `BL-NNN`, `SL-NNN`, `BRK-NNN`, `DEAL-NNN`)
+- `set_updated_at()` trigger on `properties` and `deals`
+- `generate_land_code()` function for auto land codes
+- `nextval(sequence_name)` RPC wrapper (callable from client)
+- Indexes on all frequently queried columns
+- Seed data: 5 demo brokers
 
 ### 2b. Row Level Security
 
 Copy and run `supabase/rls.sql`
 
 This sets up:
-- `auth_role()` helper (reads `user_metadata.role` from JWT)
-- `auth_broker_id()` helper (matches auth email to broker row)
-- RLS policies on every table:
-  - **Admin** — full read/write on everything
-  - **Broker** — scoped read/write (own leads, assigned properties, own deals)
+- `auth_role()` helper — reads `user_metadata.role` from JWT (`'admin'` or `'broker'`)
+- `auth_broker_id()` helper — matches the auth user's email to a row in `brokers`
+- RLS enabled on all 10 tables with policies:
 
-### 2c. Storage Bucket
+| Table          | Admin | Broker |
+|----------------|-------|--------|
+| `brokers`      | ALL   | SELECT own row only |
+| `books`        | ALL   | — |
+| `properties`   | ALL   | SELECT all; UPDATE own assigned |
+| `seller_leads` | ALL   | SELECT all; INSERT + UPDATE own |
+| `buyer_leads`  | ALL   | SELECT all; INSERT + UPDATE own |
+| `site_visits`  | ALL   | SELECT all; INSERT |
+| `deals`        | ALL   | SELECT where buyer/seller/referral broker |
+| `documents`    | ALL   | — |
+| `alerts`       | ALL   | — |
+| `activity_log` | ALL   | — |
+
+### 2c. Storage Buckets
 
 Copy and run `supabase/storage.sql`
 
-Or create manually via Dashboard → Storage:
-1. Click **New Bucket**
-2. Name: `property-documents`
-3. **Public bucket**: OFF (private)
-4. File size limit: `10 MB`
-5. Allowed MIME types: `application/pdf, image/jpeg, image/png, image/webp, application/msword, application/vnd.openxmlformats-officedocument.wordprocessingml.document`
+This creates two buckets:
+
+| Bucket | Public | Max Size | Use |
+|--------|--------|----------|-----|
+| `property-photos` | ✅ Yes | 5 MB | Property listing images (JPG/PNG/WebP/GIF) |
+| `property-documents` | ❌ No | 10 MB | Legal docs, agreements, PDFs (requires signed URL) |
 
 ---
 
@@ -70,7 +83,7 @@ In Dashboard → **Authentication** → Users → **Add user**:
 | Email    | `admin@bluesquare.in`     |
 | Password | `Admin@123` (change this) |
 
-Then set their role in the user's **metadata** — via SQL Editor:
+Then assign the admin role via SQL Editor:
 
 ```sql
 UPDATE auth.users
@@ -80,17 +93,25 @@ WHERE email = 'admin@bluesquare.in';
 
 ### Broker Users
 
-For each broker in the `brokers` table, create an Auth user with `role: broker`:
+For each broker in the `brokers` table, create an Auth user and set their role:
 
 ```sql
--- Example: create broker user (do this for each broker)
--- First create the user via Dashboard or API, then:
+-- 1. Create the user via Dashboard → Authentication → Users → Add user
+-- 2. Then set their role:
 UPDATE auth.users
 SET raw_user_meta_data = raw_user_meta_data || '{"role": "broker"}'::jsonb
-WHERE email = 'arjun@bluesquare.in';
+WHERE email = 'arjun@bluesquare.in';  -- must match brokers.email exactly
 ```
 
-**Important:** The broker's Auth email must match their `email` column in the `brokers` table — this is how `auth_broker_id()` links them.
+**Important:** The broker's Auth email must exactly match their `email` column in the `brokers` table. This is how `auth_broker_id()` links the session to the broker row.
+
+Optionally link their auth UUID back to the broker row (enables direct user ID lookups):
+
+```sql
+UPDATE brokers
+SET auth_user_id = (SELECT id FROM auth.users WHERE email = 'arjun@bluesquare.in')
+WHERE email = 'arjun@bluesquare.in';
+```
 
 ---
 
@@ -99,66 +120,103 @@ WHERE email = 'arjun@bluesquare.in';
 Run these checks in SQL Editor:
 
 ```sql
--- Check tables exist
+-- Tables exist
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public'
 ORDER BY table_name;
 
--- Check RLS is enabled
-SELECT tablename, rowsecurity
-FROM pg_tables
+-- RLS enabled on all tables
+SELECT tablename, rowsecurity FROM pg_tables
 WHERE schemaname = 'public'
 ORDER BY tablename;
 
--- Check storage bucket
-SELECT * FROM storage.buckets WHERE id = 'property-documents';
+-- Both storage buckets created
+SELECT id, name, public FROM storage.buckets ORDER BY id;
 
--- Check seed brokers
-SELECT broker_id, name, tier_level FROM brokers;
+-- Seed brokers loaded
+SELECT broker_id, name, tier_level FROM brokers ORDER BY broker_id;
+
+-- Test auth_role() as admin (run while authenticated as admin):
+SELECT auth_role();   -- should return 'admin'
+SELECT auth_broker_id();  -- should return the admin's broker UUID if linked
 ```
 
 ---
 
 ## Step 5 — Optional: Enable Realtime
 
-For live Kanban updates across sessions, enable Realtime for the `deals` table:
+For live Kanban / pipeline updates, enable Realtime on key tables:
 
-Dashboard → **Database** → **Replication** → enable `deals` table.
+Dashboard → **Database** → **Replication** → enable `deals`, `buyer_leads`, `site_visits`.
 
 ---
 
 ## Database Schema Summary
 
-| Table           | Key Fields                                                         |
-|-----------------|--------------------------------------------------------------------|
-| `brokers`       | broker_id, name, tier_level, deals_closed, total_commission_earned |
-| `books`         | book_id, book_name, status                                         |
-| `properties`    | land_code (BLU-YYYY-NNN), type, area, price, side_a/b/c/d         |
-| `seller_leads`  | lead_id (SL-NNN), owner_name, property_location, asking_price      |
-| `buyer_leads`   | lead_id (BL-NNN), name, budget_min/max, purpose, urgency           |
-| `site_visits`   | property_id, buyer_id, visit_date, buyer_reaction                  |
-| `deals`         | deal_id (DEAL-NNN), deal_value, commission splits, status          |
-| `documents`     | property_id, folder, file_url (Supabase Storage path)             |
-| `alerts`        | type, message, is_done, snoozed_until                              |
-| `activity_log`  | type, description, actor, related_id                               |
+| Table           | Key Fields |
+|-----------------|------------|
+| `brokers`       | `broker_id` (BRK-NNN), `name`, `tier_level`, `deals_closed`, `total_commission_earned`, `auth_user_id` |
+| `books`         | `book_id`, `book_name`, `status` |
+| `properties`    | `land_code` (BLU-YYYY-NNN), `type`, `area_sqft`, `asking_price`, `photo_urls TEXT[]`, `gps_lat/lng`, `landmark` |
+| `seller_leads`  | `lead_id` (SL-NNN), `owner_name`, `asking_price`, `notes_history JSONB[]` |
+| `buyer_leads`   | `lead_id` (BL-NNN), `name`, `budget_min/max`, `purpose`, `urgency`, `properties_visited UUID[]`, `notes_history JSONB[]` |
+| `site_visits`   | `property_id`, `buyer_id`, `visit_date`, `buyer_reaction`, `price_discussed`, `next_action` |
+| `deals`         | `deal_id` (DEAL-NNN), `deal_value`, `commission_pct`, `total_commission` (generated), `status` |
+| `documents`     | `property_id`, `folder`, `file_name`, `file_url`, `file_type` |
+| `alerts`        | `type`, `message`, `is_done`, `snoozed_until` |
+| `activity_log`  | `type`, `description`, `actor`, `related_id`, `related_type` |
 
 ---
 
-## Storage Path Convention
+## NoteEntry JSONB Structure
 
-Files are stored at:
-```
-property-documents/{property_id}/{folder}/{timestamp}.{ext}
+`notes_history` on `buyer_leads` and `seller_leads` stores an array of JSONB objects:
+
+```json
+{
+  "timestamp": "2026-04-19T10:30:00.000Z",
+  "author": "Admin",
+  "text": "Called buyer, very interested in Plot BLU-2026-003",
+  "interaction_type": "Call"
+}
 ```
 
-Example:
-```
-property-documents/a1b2c3d4-.../Legal/1713000000000.pdf
+Valid `interaction_type` values: `Call`, `WhatsApp`, `Meeting`, `Email`, `Site Visit Inquiry`, `Proposal Sent`, `Other`
+
+Example query — get all Call interactions for a buyer:
+
+```sql
+SELECT elem->>'timestamp', elem->>'text'
+FROM buyer_leads,
+     jsonb_array_elements(notes_history) AS elem
+WHERE id = '<buyer-uuid>'
+  AND elem->>'interaction_type' = 'Call'
+ORDER BY 1 DESC;
 ```
 
-Access via:
-```ts
-supabase.storage.from('property-documents').getPublicUrl(path)
-// or for private buckets:
-supabase.storage.from('property-documents').createSignedUrl(path, 3600)
+---
+
+## Storage Path Conventions
+
+### Photos (`property-photos` — public)
 ```
+photos/{timestamp}-{random}.{ext}
+```
+Access: `supabase.storage.from('property-photos').getPublicUrl(path)`
+
+### Documents (`property-documents` — private)
+```
+{property_id}/{folder}/{timestamp}.{ext}
+```
+Access: `supabase.storage.from('property-documents').createSignedUrl(path, 3600)`
+
+---
+
+## Generated / Computed Columns
+
+These are PostgreSQL `GENERATED ALWAYS AS ... STORED` columns — do not insert into them:
+
+| Table       | Column              | Formula |
+|-------------|---------------------|---------|
+| `properties`| `price_per_sqft`    | `asking_price / area_sqft` |
+| `deals`     | `total_commission`  | `deal_value * commission_pct / 100` |
