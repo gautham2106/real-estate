@@ -211,15 +211,17 @@ export default function NewSellerLeadPage() {
         <div className="bg-white rounded-xl border border-slate-200 p-6">
           <SectionTitle>Lead Management</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Field label="Source">
+            <Field label="Source" required>
               <select
                 name="source"
                 className={selectCls}
                 value={form.source}
                 onChange={(e) => set('source', e.target.value)}
+                required
               >
                 <option value="">— Select Source —</option>
                 <option>Instagram</option>
+                <option>YouTube</option>
                 <option>Facebook</option>
                 <option>WhatsApp</option>
                 <option>Referral</option>

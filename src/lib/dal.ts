@@ -135,10 +135,16 @@ export async function getLeadStats() {
 
 // ─── SITE VISITS ──────────────────────────────────────────
 
-export async function getSiteVisits(): Promise<SiteVisit[]> {
-  if (isDemoMode) return mockSiteVisits
+export async function getSiteVisits(filters?: { brokerId?: string }): Promise<SiteVisit[]> {
+  if (isDemoMode) {
+    let data = mockSiteVisits
+    if (filters?.brokerId) data = data.filter(v => v.broker_id === filters.brokerId)
+    return data
+  }
   const supabase = await createClient()
-  const { data, error } = await supabase.from('site_visits').select('*').order('visit_date', { ascending: false })
+  let query = supabase.from('site_visits').select('*').order('visit_date', { ascending: false })
+  if (filters?.brokerId) query = query.eq('broker_id', filters.brokerId)
+  const { data, error } = await query
   if (error) throw error
   return (data ?? []) as SiteVisit[]
 }

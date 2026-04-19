@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode, logActivity } from '@/lib/dal'
+import { getCurrentBrokerId } from '@/lib/auth'
+
+const SOURCE_OPTIONS = ['Instagram', 'YouTube', 'Facebook', 'WhatsApp', 'Referral', 'Walk-in', 'Website', 'Other'] as const
 
 const buyerLeadSchema = z.object({
   name: z.string().min(1),
@@ -20,7 +23,7 @@ const buyerLeadSchema = z.object({
   loan_required: z.coerce.boolean().optional(),
   loan_amount: z.coerce.number().optional(),
   urgency: z.enum(['Immediate', '3 months', '6 months']).optional(),
-  source: z.enum(['Instagram', 'Facebook', 'WhatsApp', 'Referral', 'Walk-in', 'Website', 'Other']).optional(),
+  source: z.enum(SOURCE_OPTIONS, { errorMap: () => ({ message: 'Please select a lead source' }) }),
   assigned_to: z.string().uuid().optional().or(z.literal('')),
   follow_up_date: z.string().optional(),
   notes: z.string().optional(),
@@ -36,7 +39,7 @@ const sellerLeadSchema = z.object({
   property_type: z.enum(['Plot', 'House', 'Farm', 'Commercial']).optional(),
   reason_for_selling: z.string().optional(),
   document_status: z.string().optional(),
-  source: z.enum(['Instagram', 'Facebook', 'WhatsApp', 'Referral', 'Walk-in', 'Website', 'Other']).optional(),
+  source: z.enum(SOURCE_OPTIONS, { errorMap: () => ({ message: 'Please select a lead source' }) }),
   assigned_to: z.string().uuid().optional().or(z.literal('')),
   follow_up_date: z.string().optional(),
   notes: z.string().optional(),
@@ -47,13 +50,23 @@ async function generateLeadId(supabase: Awaited<ReturnType<typeof createClient>>
   return `${prefix}-${String((count ?? 0) + 1).padStart(3, '0')}`
 }
 
+// Strip empty source so enum validation gives a clean error message
+function clean(raw: Record<string, FormDataEntryValue>): Record<string, unknown> {
+  const out = { ...raw } as Record<string, unknown>
+  if (!out.source) delete out.source
+  return out
+}
+
 export async function createBuyerLeadAction(formData: FormData) {
   if (isDemoMode) { revalidatePath('/buyer-leads'); redirect('/buyer-leads') }
-  const raw = Object.fromEntries(formData.entries())
+  const raw = clean(Object.fromEntries(formData.entries()))
   const parsed = buyerLeadSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  const lead_id = await generateLeadId(supabase, 'buyer_leads', 'BL')
+  const [lead_id, brokerId] = await Promise.all([
+    generateLeadId(supabase, 'buyer_leads', 'BL'),
+    getCurrentBrokerId(),
+  ])
   const { notes, assigned_to, ...rest } = parsed.data
   const notes_history = notes?.trim()
     ? [{ timestamp: new Date().toISOString(), author: 'Admin', text: notes.trim() }]
@@ -61,6 +74,7 @@ export async function createBuyerLeadAction(formData: FormData) {
   const { error } = await supabase.from('buyer_leads').insert({
     ...rest,
     lead_id,
+    added_by_broker_id: brokerId ?? null,
     added_at: new Date().toISOString(),
     notes_history,
     assigned_to: assigned_to || null,
@@ -73,10 +87,18 @@ export async function createBuyerLeadAction(formData: FormData) {
 
 export async function updateBuyerLeadAction(id: string, formData: FormData) {
   if (isDemoMode) { revalidatePath('/buyer-leads'); return { success: true } }
-  const raw = Object.fromEntries(formData.entries())
+  const raw = clean(Object.fromEntries(formData.entries()))
   const parsed = buyerLeadSchema.partial().safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
+  // Ownership lock: brokers can only edit leads they added
+  const brokerId = await getCurrentBrokerId()
+  if (brokerId) {
+    const { data: lead } = await supabase.from('buyer_leads').select('added_by_broker_id').eq('id', id).single()
+    if (lead?.added_by_broker_id && lead.added_by_broker_id !== brokerId) {
+      return { error: 'You can only edit leads you added' }
+    }
+  }
   const { notes: _notes, ...updateData } = parsed.data
   const { error } = await supabase.from('buyer_leads').update({
     ...updateData,
@@ -101,11 +123,14 @@ export async function deleteBuyerLeadAction(id: string) {
 
 export async function createSellerLeadAction(formData: FormData) {
   if (isDemoMode) { revalidatePath('/seller-leads'); redirect('/seller-leads') }
-  const raw = Object.fromEntries(formData.entries())
+  const raw = clean(Object.fromEntries(formData.entries()))
   const parsed = sellerLeadSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
-  const lead_id = await generateLeadId(supabase, 'seller_leads', 'SL')
+  const [lead_id, brokerId] = await Promise.all([
+    generateLeadId(supabase, 'seller_leads', 'SL'),
+    getCurrentBrokerId(),
+  ])
   const { notes, assigned_to, ...rest } = parsed.data
   const notes_history = notes?.trim()
     ? [{ timestamp: new Date().toISOString(), author: 'Admin', text: notes.trim() }]
@@ -113,6 +138,7 @@ export async function createSellerLeadAction(formData: FormData) {
   const { error } = await supabase.from('seller_leads').insert({
     ...rest,
     lead_id,
+    added_by_broker_id: brokerId ?? null,
     added_at: new Date().toISOString(),
     notes_history,
     assigned_to: assigned_to || null,
@@ -125,10 +151,18 @@ export async function createSellerLeadAction(formData: FormData) {
 
 export async function updateSellerLeadAction(id: string, formData: FormData) {
   if (isDemoMode) { revalidatePath('/seller-leads'); return { success: true } }
-  const raw = Object.fromEntries(formData.entries())
+  const raw = clean(Object.fromEntries(formData.entries()))
   const parsed = sellerLeadSchema.partial().safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
   const supabase = await createClient()
+  // Ownership lock: brokers can only edit leads they added
+  const brokerId = await getCurrentBrokerId()
+  if (brokerId) {
+    const { data: lead } = await supabase.from('seller_leads').select('added_by_broker_id').eq('id', id).single()
+    if (lead?.added_by_broker_id && lead.added_by_broker_id !== brokerId) {
+      return { error: 'You can only edit leads you added' }
+    }
+  }
   const { notes: _notes, ...updateData } = parsed.data
   const { error } = await supabase.from('seller_leads').update({
     ...updateData,
@@ -188,7 +222,6 @@ export async function convertSellerLeadToPropertyAction(id: string) {
   return { propertyId: property.id as string }
 }
 
-// Quick follow-up date setter — used from alerts page and lead detail without full edit
 export async function setFollowUpDateAction(
   id: string,
   type: 'buyer' | 'seller',

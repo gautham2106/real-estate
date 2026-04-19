@@ -1,18 +1,18 @@
 import Link from 'next/link'
 import { cn, formatCurrency, tierIcon } from '@/lib/utils'
 import Badge from '@/components/ui/Badge'
-import { getBrokers, getBuyerLeads, getSellerLeads, getDeals, getLeaderboard } from '@/lib/dal'
+import { getBrokers, getBuyerLeads, getSellerLeads, getDeals, getLeaderboard, getSiteVisits } from '@/lib/dal'
 import { getUser } from '@/lib/auth'
 import type { BrokerTier, Broker } from '@/types'
 import {
-  UserPlus, Home, DollarSign, TrendingUp, ShieldAlert, Trophy, ChevronRight, MapPin,
+  UserPlus, Home, DollarSign, TrendingUp, ShieldAlert, Trophy, ChevronRight, MapPin, AlertCircle, Activity,
 } from 'lucide-react'
 
 const tierConfig: Record<BrokerTier, { next: BrokerTier | null; dealsNeeded: number; label: string }> = {
   Starter:     { next: 'Active',      dealsNeeded: 1,  label: '1 deal to reach Active' },
   Active:      { next: 'Star',        dealsNeeded: 3,  label: '3 deals to reach Star' },
   Star:        { next: 'Elite',       dealsNeeded: 5,  label: '5 deals to reach Elite' },
-  Elite:       { next: 'Coordinator', dealsNeeded: 10, label: '10 deals + 5 recruits to reach Coordinator' },
+  Elite:       { next: 'Coordinator', dealsNeeded: 10, label: '10 deals to reach Coordinator' },
   Coordinator: { next: null,          dealsNeeded: 0,  label: 'Top tier — Coordinator' },
 }
 
@@ -27,27 +27,23 @@ function QuickAction({ href, icon: Icon, label, color }: { href: string; icon: R
 }
 
 export default async function BrokerPortalPage() {
-  const [user, allBrokers, allBuyerLeads, allSellerLeads, allDeals, leaderboard] = await Promise.all([
+  const [user, allBrokers, allBuyerLeads, allSellerLeads, allDeals, allVisits, leaderboard] = await Promise.all([
     getUser(),
     getBrokers(),
     getBuyerLeads(),
     getSellerLeads(),
     getDeals(),
+    getSiteVisits(),
     getLeaderboard(),
   ])
 
-  // In demo mode, use first broker; in production, match by user email or broker_id in metadata
+  // Match broker by email or user_metadata.broker_id; fallback to first (demo)
   let broker: Broker | undefined
   if (user) {
     const brokerId = (user as { user_metadata?: { broker_id?: string } }).user_metadata?.broker_id
-    if (brokerId) {
-      broker = allBrokers.find(b => b.broker_id === brokerId)
-    }
-    if (!broker) {
-      broker = allBrokers.find(b => b.email === user.email)
-    }
+    if (brokerId) broker = allBrokers.find(b => b.broker_id === brokerId)
+    if (!broker) broker = allBrokers.find(b => b.email === user.email)
   }
-  // Fallback to first broker (demo mode)
   if (!broker) broker = allBrokers[0]
 
   if (!broker) {
@@ -59,15 +55,32 @@ export default async function BrokerPortalPage() {
     )
   }
 
-  // Scope all data to this broker
-  const myBuyerLeads = allBuyerLeads.filter(l => l.added_by_broker_id === broker!.broker_id)
-  const mySellerLeads = allSellerLeads.filter(l => l.added_by_broker_id === broker!.broker_id)
+  // Use broker.id (UUID) for all ownership checks — consistent with how leads/deals store broker FK
+  const myBuyerLeads = allBuyerLeads.filter(l => l.added_by_broker_id === broker!.id)
+  const mySellerLeads = allSellerLeads.filter(l => l.added_by_broker_id === broker!.id)
   const myDeals = allDeals.filter(d =>
-    d.buyer_broker_id === broker!.broker_id || d.seller_broker_id === broker!.broker_id
+    d.buyer_broker_id === broker!.id ||
+    d.seller_broker_id === broker!.id ||
+    d.referral_broker_id === broker!.id ||
+    d.co_sponsor_broker_1_id === broker!.id ||
+    d.co_sponsor_broker_2_id === broker!.id
   )
+  const myVisits = allVisits.filter(v => v.broker_id === broker!.id)
   const myLeadsTotal = myBuyerLeads.length + mySellerLeads.length
   const myCommission = broker.total_commission_earned ?? 0
   const myRank = leaderboard.find(e => e.broker_id === broker!.broker_id)?.rank ?? '—'
+
+  // Activity this month
+  const thisMonth = new Date().toISOString().slice(0, 7)
+  const leadsThisMonth = [...myBuyerLeads, ...mySellerLeads].filter(l => l.created_at?.startsWith(thisMonth)).length
+  const visitsThisMonth = myVisits.filter(v => v.visit_date?.startsWith(thisMonth)).length
+  const dealsInProgress = myDeals.filter(d => !['Closed Won', 'Closed Lost'].includes(d.status)).length
+
+  // Overdue follow-ups
+  const today = new Date().toISOString().split('T')[0]
+  const overdueLeads = [...myBuyerLeads, ...mySellerLeads].filter(l =>
+    l.follow_up_date && l.follow_up_date < today && !['Closed Won', 'Closed Lost', 'Listed'].includes(l.status)
+  )
 
   const tierInfo = tierConfig[broker.tier_level]
   const dealsDone = broker.deals_closed ?? 0
@@ -106,6 +119,38 @@ export default async function BrokerPortalPage() {
         </p>
       </div>
 
+      {/* Overdue Follow-ups Alert */}
+      {overdueLeads.length > 0 && (
+        <div className="flex items-start gap-3 bg-red-50 border border-red-300 rounded-xl px-5 py-4">
+          <AlertCircle size={18} className="text-red-600 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-800 mb-2">
+              {overdueLeads.length} overdue follow-up{overdueLeads.length !== 1 ? 's' : ''}
+            </p>
+            <div className="space-y-1">
+              {overdueLeads.slice(0, 5).map(l => {
+                const name = 'name' in l ? l.name : l.owner_name
+                const type = 'name' in l ? 'buyer' : 'seller'
+                return (
+                  <Link
+                    key={l.id}
+                    href={`/${type}-leads/${l.id}`}
+                    className="flex items-center gap-2 text-xs text-red-700 hover:text-red-900"
+                  >
+                    <span className="font-mono">{l.lead_id}</span>
+                    <span>{name}</span>
+                    <span className="text-red-400">— due {l.follow_up_date}</span>
+                  </Link>
+                )
+              })}
+              {overdueLeads.length > 5 && (
+                <p className="text-xs text-red-500">+{overdueLeads.length - 5} more</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Personal Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -127,6 +172,28 @@ export default async function BrokerPortalPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Activity This Month */}
+      <div className="bg-white rounded-xl border border-slate-200 p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Activity size={16} className="text-blue-600" />
+          <h3 className="text-sm font-semibold text-slate-700">Activity This Month</h3>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-blue-50 rounded-xl">
+            <p className="text-3xl font-bold text-blue-700">{leadsThisMonth}</p>
+            <p className="text-xs text-blue-600 mt-1">Leads Added</p>
+          </div>
+          <div className="text-center p-4 bg-amber-50 rounded-xl">
+            <p className="text-3xl font-bold text-amber-700">{visitsThisMonth}</p>
+            <p className="text-xs text-amber-600 mt-1">Site Visits</p>
+          </div>
+          <div className="text-center p-4 bg-green-50 rounded-xl">
+            <p className="text-3xl font-bold text-green-700">{dealsInProgress}</p>
+            <p className="text-xs text-green-600 mt-1">Deals in Progress</p>
+          </div>
+        </div>
       </div>
 
       {/* Tier Progress + Leaderboard */}
@@ -216,7 +283,7 @@ export default async function BrokerPortalPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  {['Lead ID', 'Name', 'Budget', 'Location', 'Status', 'Added'].map(h => (
+                  {['Lead ID', 'Name', 'Budget', 'Source', 'Status', 'Follow-up'].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
@@ -224,16 +291,24 @@ export default async function BrokerPortalPage() {
               <tbody className="divide-y divide-slate-100">
                 {recentBuyerLeads.map(lead => (
                   <tr key={lead.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 font-mono text-xs text-blue-700">{lead.lead_id}</td>
+                    <td className="px-4 py-3 font-mono text-xs text-blue-700">
+                      <Link href={`/buyer-leads/${lead.id}`} className="hover:underline">{lead.lead_id}</Link>
+                    </td>
                     <td className="px-4 py-3 font-medium text-slate-800">{lead.name}</td>
                     <td className="px-4 py-3 text-slate-600">
                       {lead.budget_min && lead.budget_max
                         ? `${formatCurrency(lead.budget_min)} – ${formatCurrency(lead.budget_max)}`
                         : '—'}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{lead.preferred_location ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">{lead.source ?? '—'}</td>
                     <td className="px-4 py-3"><Badge status={lead.status} /></td>
-                    <td className="px-4 py-3 text-slate-500">{new Date(lead.created_at).toLocaleDateString('en-IN')}</td>
+                    <td className="px-4 py-3 text-xs">
+                      {lead.follow_up_date ? (
+                        <span className={lead.follow_up_date < today ? 'text-red-600 font-semibold' : 'text-slate-500'}>
+                          {lead.follow_up_date < today ? '⚠ ' : ''}{lead.follow_up_date}
+                        </span>
+                      ) : '—'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -262,7 +337,7 @@ export default async function BrokerPortalPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {myDeals.map(deal => {
-                  const isBuyer = deal.buyer_broker_id === broker!.broker_id
+                  const isBuyer = deal.buyer_broker_id === broker!.id
                   const payout = isBuyer ? (deal.buyer_broker_payout ?? 0) : (deal.seller_broker_payout ?? 0)
                   return (
                     <tr key={deal.id} className="hover:bg-slate-50">

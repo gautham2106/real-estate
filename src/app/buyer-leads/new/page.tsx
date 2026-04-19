@@ -277,15 +277,17 @@ export default function NewBuyerLeadPage() {
                 <option>6 months</option>
               </select>
             </Field>
-            <Field label="Source">
+            <Field label="Source" required>
               <select
                 name="source"
                 className={selectCls}
                 value={form.source}
                 onChange={(e) => set('source', e.target.value)}
+                required
               >
                 <option value="">— Select Source —</option>
                 <option>Instagram</option>
+                <option>YouTube</option>
                 <option>Facebook</option>
                 <option>WhatsApp</option>
                 <option>Referral</option>

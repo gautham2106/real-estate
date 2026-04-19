@@ -6,6 +6,9 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { isDemoMode, logActivity } from '@/lib/dal'
 
+const COMMISSION_LOCKED_STATUSES = ['Registration Done', 'Closed Won', 'Closed Lost']
+const SITE_VISIT_REQUIRED_STATUSES = ['Token Paid', 'MOU Signed', 'Documents Verified', 'Loan Processing', 'Registration Scheduled', 'Registration Done', 'Closed Won']
+
 function calcCommission(dealValue: number, buyerPct: number, sellerPct: number, hasReferral: boolean, hasTier1: boolean, hasTier2: boolean) {
   const totalCommission = dealValue * (buyerPct + sellerPct) / 100
   const buyerBrokerPayout = dealValue * 1.25 / 100
@@ -15,6 +18,14 @@ function calcCommission(dealValue: number, buyerPct: number, sellerPct: number, 
   const tier2OverridePayout = hasTier2 ? dealValue * 0.05 / 100 : 0
   const yourNet = totalCommission - buyerBrokerPayout - sellerBrokerPayout - referralPayout - tier1OverridePayout - tier2OverridePayout
   return { totalCommission, buyerBrokerPayout, sellerBrokerPayout, referralPayout, tier1OverridePayout, tier2OverridePayout, yourNet }
+}
+
+function tierFromCount(count: number): string {
+  if (count >= 10) return 'Coordinator'
+  if (count >= 5) return 'Elite'
+  if (count >= 3) return 'Star'
+  if (count >= 1) return 'Active'
+  return 'Starter'
 }
 
 const dealSchema = z.object({
@@ -52,10 +63,15 @@ export async function createDealAction(formData: FormData) {
   const raw = Object.fromEntries(formData.entries())
   const parsed = dealSchema.safeParse(raw)
   if (!parsed.success) return { error: parsed.error.issues[0].message }
+
+  // CRM enforcement: at least one broker must be assigned
+  if (!parsed.data.buyer_broker_id && !parsed.data.seller_broker_id) {
+    return { error: 'At least one broker (buyer side or seller side) must be assigned to create a deal' }
+  }
+
   const supabase = await createClient()
   const { count } = await supabase.from('deals').select('*', { count: 'exact', head: true })
   const deal_id = `DEAL-${String((count ?? 0) + 1).padStart(3, '0')}`
-  // Get property and buyer for title
   const [{ data: prop }, { data: buyer }] = await Promise.all([
     supabase.from('properties').select('land_code').eq('id', parsed.data.property_id).single(),
     supabase.from('buyer_leads').select('name').eq('id', parsed.data.buyer_lead_id).single(),
@@ -128,12 +144,31 @@ export async function updateDealAction(id: string, formData: FormData) {
   if (isDemoMode) { revalidatePath('/deals'); return {} }
 
   const supabase = await createClient()
+
+  // Commission lock: don't recalculate if deal is in a final stage
+  const { data: currentDeal } = await supabase.from('deals')
+    .select('status, buyer_commission_pct, seller_commission_pct, buyer_broker_payout, seller_broker_payout, referral_payout, tier1_override_payout, tier2_override_payout, your_net')
+    .eq('id', id).single()
+
+  const commissionLocked = COMMISSION_LOCKED_STATUSES.includes(currentDeal?.status ?? '')
+
   const hasTier1 = !!parsed.data.tier1_override_broker_id
   const hasTier2 = !!parsed.data.tier2_override_broker_id
-  const comm = calcCommission(
-    parsed.data.deal_value, parsed.data.buyer_commission_pct, parsed.data.seller_commission_pct,
-    !!parsed.data.has_referral, hasTier1, hasTier2
-  )
+
+  const comm = commissionLocked
+    ? {
+        buyerBrokerPayout: currentDeal?.buyer_broker_payout ?? 0,
+        sellerBrokerPayout: currentDeal?.seller_broker_payout ?? 0,
+        referralPayout: currentDeal?.referral_payout ?? 0,
+        tier1OverridePayout: currentDeal?.tier1_override_payout ?? 0,
+        tier2OverridePayout: currentDeal?.tier2_override_payout ?? 0,
+        yourNet: currentDeal?.your_net ?? 0,
+      }
+    : calcCommission(
+        parsed.data.deal_value, parsed.data.buyer_commission_pct, parsed.data.seller_commission_pct,
+        !!parsed.data.has_referral, hasTier1, hasTier2
+      )
+
   const [{ data: prop }, { data: buyer }] = await Promise.all([
     supabase.from('properties').select('land_code').eq('id', parsed.data.property_id).single(),
     supabase.from('buyer_leads').select('name').eq('id', parsed.data.buyer_lead_id).single(),
@@ -153,8 +188,8 @@ export async function updateDealAction(id: string, formData: FormData) {
     tier1_override_broker_id: parsed.data.tier1_override_broker_id || null,
     tier2_override_broker_id: parsed.data.tier2_override_broker_id || null,
     deal_value: parsed.data.deal_value,
-    buyer_commission_pct: parsed.data.buyer_commission_pct,
-    seller_commission_pct: parsed.data.seller_commission_pct,
+    buyer_commission_pct: commissionLocked ? currentDeal?.buyer_commission_pct : parsed.data.buyer_commission_pct,
+    seller_commission_pct: commissionLocked ? currentDeal?.seller_commission_pct : parsed.data.seller_commission_pct,
     buyer_broker_payout: comm.buyerBrokerPayout,
     seller_broker_payout: comm.sellerBrokerPayout,
     referral_payout: comm.referralPayout,
@@ -186,8 +221,43 @@ export async function updateDealAction(id: string, formData: FormData) {
 export async function updateDealStatusAction(id: string, status: string) {
   if (isDemoMode) { revalidatePath('/deals'); revalidatePath('/kanban'); return { success: true } }
   const supabase = await createClient()
+
+  // CRM enforcement: require a site visit before advancing past negotiation
+  if (SITE_VISIT_REQUIRED_STATUSES.includes(status)) {
+    const { data: deal } = await supabase.from('deals')
+      .select('property_id, buyer_broker_id, seller_broker_id')
+      .eq('id', id).single()
+    if (!deal) return { error: 'Deal not found' }
+    if (!deal.buyer_broker_id && !deal.seller_broker_id) {
+      return { error: 'Cannot advance this deal — no broker is assigned' }
+    }
+    const { count: visitCount } = await supabase.from('site_visits')
+      .select('*', { count: 'exact', head: true })
+      .eq('property_id', deal.property_id)
+    if (!visitCount || visitCount === 0) {
+      return { error: 'Cannot advance to this stage — no site visit has been logged for this property' }
+    }
+  }
+
   const { error } = await supabase.from('deals').update({ status }).eq('id', id)
   if (error) return { error: error.message }
+
+  // Auto-calculate broker tier when a deal is closed
+  if (status === 'Closed Won') {
+    const { data: deal } = await supabase.from('deals')
+      .select('buyer_broker_id, seller_broker_id')
+      .eq('id', id).single()
+    const brokerIds = [deal?.buyer_broker_id, deal?.seller_broker_id].filter(Boolean) as string[]
+    for (const brokerUuid of brokerIds) {
+      const { count: closedCount } = await supabase.from('deals')
+        .select('*', { count: 'exact', head: true })
+        .or(`buyer_broker_id.eq.${brokerUuid},seller_broker_id.eq.${brokerUuid}`)
+        .eq('status', 'Closed Won')
+      const tier = tierFromCount(closedCount ?? 0)
+      await supabase.from('brokers').update({ deals_closed: closedCount ?? 0, tier_level: tier }).eq('id', brokerUuid)
+    }
+  }
+
   await logActivity('Deal Status Updated', `Deal ${id} moved to ${status}`)
   revalidatePath('/deals')
   revalidatePath('/kanban')
