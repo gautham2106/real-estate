@@ -96,6 +96,31 @@ export async function updatePropertyAction(id: string, formData: FormData) {
   return { success: true }
 }
 
+export async function uploadPropertyPhotoAction(formData: FormData): Promise<{ url?: string; error?: string }> {
+  const file = formData.get('file') as File | null
+  if (!file || file.size === 0) return { error: 'No file provided' }
+
+  if (isDemoMode) {
+    const seed = file.name.replace(/\W/g, '') || String(Date.now())
+    return { url: `https://picsum.photos/seed/${seed}/800/600` }
+  }
+
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  if (!['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(ext)) {
+    return { error: 'Only JPG, PNG, WebP and GIF files are allowed' }
+  }
+
+  const supabase = await createClient()
+  const path = `photos/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error: uploadError } = await supabase.storage
+    .from('property-photos')
+    .upload(path, file, { contentType: file.type, upsert: false })
+  if (uploadError) return { error: `Upload failed: ${uploadError.message}` }
+
+  const { data: urlData } = supabase.storage.from('property-photos').getPublicUrl(path)
+  return { url: urlData.publicUrl }
+}
+
 export async function deletePropertyAction(id: string) {
   if (isDemoMode) { revalidatePath('/properties'); return {} }
   const supabase = await createClient()

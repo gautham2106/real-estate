@@ -248,6 +248,14 @@ export default function PropertyDetailTabs({
                   <p className="font-semibold text-slate-700 text-sm mt-0.5">{property.village ?? '—'}</p>
                 </div>
                 <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">Taluk</p>
+                  <p className="font-semibold text-slate-700 text-sm mt-0.5">{property.taluk ?? '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wide">Landmark</p>
+                  <p className="font-semibold text-slate-700 text-sm mt-0.5">{property.landmark ?? '—'}</p>
+                </div>
+                <div>
                   <p className="text-xs text-slate-400 uppercase tracking-wide">Facing</p>
                   <p className="font-semibold text-slate-700 text-sm mt-0.5">{property.facing ?? '—'}</p>
                 </div>

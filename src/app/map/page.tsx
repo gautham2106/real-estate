@@ -150,23 +150,12 @@ export default function PublicMapPage() {
                 )}
               </div>
               <div className="flex gap-2">
-                {p.gps_lat && p.gps_lng && (
-                  <a
-                    href={`https://www.google.com/maps?q=${p.gps_lat},${p.gps_lng}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
-                  >
-                    📍 Directions
-                  </a>
-                )}
                 <a
                   href={`https://wa.me/919876543210?text=Hi, I'm interested in ${p.land_code} — ${p.title}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={e => e.stopPropagation()}
-                  className={`flex items-center justify-center gap-1.5 py-2 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition-colors ${p.gps_lat && p.gps_lng ? 'flex-1' : 'w-full'}`}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition-colors"
                 >
                   <MessageCircle size={12} />
                   WhatsApp

@@ -54,20 +54,14 @@ export default function PropertyMap({ properties, selected, onSelect }: Props) {
 
       geoProps.forEach(p => {
         const color = statusColor[p.status] ?? '#94a3b8'
-        const icon = L.divIcon({
-          html: `<div style="
-            background:${color};
-            width:12px;height:12px;
-            border-radius:50%;
-            border:2px solid white;
-            box-shadow:0 1px 3px rgba(0,0,0,0.4);
-          "></div>`,
-          className: '',
-          iconSize: [12, 12],
-          iconAnchor: [6, 6],
-        })
 
-        const marker = L.marker([p.gps_lat!, p.gps_lng!], { icon })
+        L.circle([p.gps_lat!, p.gps_lng!], {
+          radius: 500,
+          color,
+          weight: 2,
+          fillColor: color,
+          fillOpacity: 0.15,
+        })
           .addTo(map!)
           .bindPopup(`
             <div style="min-width:180px;font-family:sans-serif">
@@ -75,11 +69,10 @@ export default function PropertyMap({ properties, selected, onSelect }: Props) {
               <p style="font-weight:600;font-size:13px;margin:2px 0 4px">${p.title}</p>
               <p style="font-size:12px;color:#1d4ed8;font-weight:600;margin:0">${formatCurrency(p.price)}</p>
               <p style="font-size:11px;color:#64748b;margin:2px 0">${p.area} ${p.area_unit} · ${p.status}</p>
-              ${p.gps_lat && p.gps_lng ? `<a href="https://www.google.com/maps?q=${p.gps_lat},${p.gps_lng}" target="_blank" style="font-size:11px;color:#16a34a">📍 Get Directions</a>` : ''}
+              <p style="font-size:11px;color:#94a3b8;margin:2px 0">📍 Within 500 m radius</p>
             </div>
           `)
-
-        marker.on('click', () => onSelect(p.id === selected ? null : p.id))
+          .on('click', () => onSelect(p.id === selected ? null : p.id))
       })
 
       // Fit bounds if multiple GPS properties

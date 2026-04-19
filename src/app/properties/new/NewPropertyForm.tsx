@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Plus, X, Image as ImageIcon } from 'lucide-react'
@@ -54,7 +54,7 @@ function fromProperty(p: Property): FormState {
     area_unit: p.area_unit,
     price: String(p.price),
     address: p.address ?? '',
-    landmark: '',
+    landmark: p.landmark ?? '',
     village: p.village ?? '',
     taluk: p.taluk ?? '',
     district: p.district ?? '',
@@ -116,6 +116,31 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
   const [submitted, setSubmitted] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [showMapPicker, setShowMapPicker] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    if (files.length === 0) return
+    setUploading(true)
+    try {
+      const { uploadPropertyPhotoAction } = await import('@/app/actions/properties')
+      for (const file of files) {
+        const fd = new FormData()
+        fd.append('file', file)
+        const result = await uploadPropertyPhotoAction(fd)
+        if (result.url) {
+          setPhotoUrls(prev => {
+            const existing = prev.filter(Boolean)
+            return [...existing, result.url!]
+          })
+        }
+      }
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const set = (field: keyof FormState | string, value: string | boolean) =>
     setForm((f) => ({ ...f, [field]: value }))
@@ -359,7 +384,32 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
           <div className="space-y-4">
             {/* Photo URLs */}
             <div>
-              <p className="text-xs font-medium text-slate-600 mb-2">Property Photos <span className="text-slate-400">(paste image URLs)</span></p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-medium text-slate-600">Property Photos</p>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-60 transition-colors"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <><Plus size={13} /> Upload from device</>
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
               <div className="space-y-2">
                 {photoUrls.map((url, i) => (
                   <div key={i} className="flex gap-2 items-start">
@@ -400,7 +450,7 @@ export default function NewPropertyForm({ isAdmin, initialData, propertyId }: Pr
                 onClick={() => setPhotoUrls(prev => [...prev, ''])}
                 className="mt-2 flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium"
               >
-                <Plus size={14} /> Add another photo URL
+                <Plus size={14} /> Add photo URL manually
               </button>
             </div>
             {/* Video */}
